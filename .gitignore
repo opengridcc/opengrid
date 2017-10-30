@@ -1,0 +1,8 @@
+*.pyc
+**.ipynb_checkpoints
+.idea/*
+.spyder*
+opengrid/notebooks/index.html
+dist/
+build/
+opengrid.egg-info/
