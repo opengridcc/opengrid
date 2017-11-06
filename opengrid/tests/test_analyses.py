@@ -16,14 +16,14 @@ import unittest
 import pandas as pd
 
 from opengrid.library import analysis
+from opengrid import datasets
 from opengrid.library.exceptions import EmptyDataFrameError
 
 class AnalysisTest(unittest.TestCase):
     
     def test_standby(self):
-
-        from opengrid.datasets import ELEC_POWER_MIN_1SENSOR
-        res = analysis.standby(ELEC_POWER_MIN_1SENSOR, 'D')
+        df = datasets.get('elec_power_min_1sensor')
+        res = analysis.standby(df, 'D')
         self.assertEqual(res.index.tz.zone, 'Europe/Brussels')
 
         self.assertRaises(EmptyDataFrameError, analysis.standby, pd.DataFrame)
