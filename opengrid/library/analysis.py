@@ -66,6 +66,8 @@ class DailyAgg(Analysis):
 
 def standby(df, resolution='d'):
     """
+    Compute standby power
+
     Parameters
     ----------
     df : Pandas DataFrame
