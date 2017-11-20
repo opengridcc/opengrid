@@ -39,3 +39,12 @@ script: nosetests --with-coverage
 
 after_success:
   - coveralls
+
+deploy:
+  provider: pypi
+  user: "Your username"
+  password:
+    secure: "My secure password"
+  on:
+    tags: true
+    branch: master
