@@ -23,7 +23,7 @@ cd opengrid
 (optional) set your local git username by running `git config user.name "git-username"`
 
 ## Dependencies
-To be able to install all dependencies make sure you have pip3 installed. If not run `sudo apt-get install python3-pip`
+To be able to install all dependencies make sure you have pip3 installed. If not run `sudo apt-get install python3-pip` (linux) or `pip3 --version` (mac os)
 
 Most of the dependencies for OpenGrid are contained in the requirements.txt file that can be found in the root directory of the cloned repository. Installing all these dependencies (and additional dependencies) can be done with the following commands:
 ```
