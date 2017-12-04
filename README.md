@@ -13,7 +13,7 @@ License: Apache 2.0
 For the OpenGrid code to run and to enable setup you need a working installation
 of Python 3.5 (or above) and git.
 
-You can check your Python 3.* installation by running `python --version` in the terminal. Git can be easily installed on most  Unix based systems by running `sudo apt-get install git-all` in the terminal.
+You can check your Python 3.* installation by running `python3 --version` in the terminal. Git can be easily installed on most  Unix based systems by running `sudo apt-get install git-all` in the terminal.
 
 Change your working directory to a clear location where you want to clone the opengrid library to. Then clone the repository and `cd` into it.
 ```
