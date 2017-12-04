@@ -8,6 +8,8 @@ and return a dataframe or list of dataframes.
 
 import datetime as dt
 import pandas as pd
+
+
 from opengrid.library.exceptions import EmptyDataFrameError
 
 class Analysis(object):
