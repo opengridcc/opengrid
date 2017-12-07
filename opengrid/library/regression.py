@@ -58,7 +58,7 @@ class MultiVarLinReg(Analysis):
         list_of_exog : list of str (default=None)
             If None (default), try to build a model with all columns in the dataframe
             If a list with column names is given, only try these columns as exogenous variables
-        confint : float, default=0.05
+        confint : float, default=0.95
             Two-sided confidence interval for predictions.
         cross_validation : bool, default=False
             If True, compute the model based on cross-validation (leave one out)
@@ -74,7 +74,7 @@ class MultiVarLinReg(Analysis):
 
         self.p_max = kwargs.get('p_max', 0.05)
         self.list_of_exog = kwargs.get('list_of_exog', self.df.columns.tolist())
-        self.confint = kwargs.get('confint', 0.05)
+        self.confint = kwargs.get('confint', 0.95)
         self.cross_validation = kwargs.get('cross_validation', False)
         self.allow_negative_predictions = kwargs.get('allow_negative_predictions', False)
         try:
@@ -139,7 +139,7 @@ class MultiVarLinReg(Analysis):
 
         # initialization: first model is the mean, but compute cv correctly.
         errors = []
-        formula = '{} ~ 1'.format(self.endog)
+        formula = "Q('{}') ~ 1".format(self.endog)
         for i in self.df.index:
             # make new_fit, compute cross-validation and store error
             df_ = self.df.drop(i, axis=0)
@@ -159,7 +159,7 @@ class MultiVarLinReg(Analysis):
             better_model_found = False
             best = dict(fit=self.list_of_fits[-1], cverror=self.list_of_cverrors[-1])
             for x in all_exog:
-                formula = self.list_of_fits[-1].model.formula + '+{}'.format(x)
+                formula = self.list_of_fits[-1].model.formula + "+Q('{}')".format(x)
                 # cross_validation, currently only implemented for monthly data
                 # compute the mean error for a given formula based on leave-one-out.
                 errors = []
@@ -190,28 +190,42 @@ class MultiVarLinReg(Analysis):
 
         self.fit = self.list_of_fits[-1]
 
-    def _unquote(self, list_of_str):
+    @staticmethod
+    def _unquote(s):
         """
-        Return list of strings with Q('xxx') ==> xxx
+        Return s with Q('xxx') ==> xxx (if found)
 
         Parameters
         ----------
-        list_of_str : list of strings
+        s : string
 
         Returns
         -------
-        res: list of strings
+        string
         """
 
-        res = []
-        for s in list_of_str:
-            match = re.findall(r"Q\('(.*?)'", s)
-            if match:
-                res += match
-            else:
-                res.append(s)
 
-        return res
+
+        match = re.findall(r"Q\('(.*?)'", s)
+        if match:
+            return match[0]
+        else:
+            return s
+
+    @staticmethod
+    def quote(s):
+        """
+        Turn xxx into Q('xxx')
+
+        Parameters
+        ----------
+        s : string
+
+        Returns
+        -------
+        string
+        """
+        return "Q('{}')".format(s)
 
     def _prune(self, fit, p_max):
         """
@@ -254,43 +268,61 @@ class MultiVarLinReg(Analysis):
         return res[0]
 
 
-    def _predict(self, fit, df, **kwargs):
+    def _predict(self, fit, df):
         """
         Return a df with predictions and confidence interval
+
+        Notes
+        -----
         The df will contain the following columns:
         - 'predicted': the model output
         - 'interval_u', 'interval_l': upper and lower confidence bounds.
+
+        The result will depend on the following attributes of self:
+        confint : float (default=0.95)
+            Confidence level for two-sided hypothesis
+        allow_negative_predictions : bool (default=True)
+            If False, correct negative predictions to zero (typically for energy consumption predictions)
 
         Parameters
         ----------
         fit : Statsmodels fit
         df : pandas DataFrame or None (default)
             If None, use self.df
-        confint : float (default=0.05)
-            Confidence level for two-sided hypothesis, if given, overrides the default one.
+
 
         Returns
         -------
-        df : pandas DataFrame
-            same as df with additional columns 'predicted', 'interval_u' and 'interval_l'
+        df_res : pandas DataFrame
+            Copy of df with additional columns 'predicted', 'interval_u' and 'interval_l'
         """
 
-
-        confint = kwargs.get('confint', self.confint)
-
         # Add model results to data as column 'predictions'
+        df_res = df.copy()
         if 'Intercept' in fit.model.exog_names:
-            df['Intercept'] = 1.0
-        df['predicted'] = fit.predict(df)
+            df_res['Intercept'] = 1.0
+        df_res['predicted'] = fit.predict(df_res)
         if not self.allow_negative_predictions:
-            df.loc[df['predicted'] < 0, 'predicted'] = 0
-        prstd, interval_l, interval_u = wls_prediction_std(fit, df[self._unquote(fit.model.exog_names)])
-        df['interval_l'] = interval_l
-        df['interval_u'] = interval_u
+            df_res.loc[df_res['predicted'] < 0, 'predicted'] = 0
 
-        return df
+        def rename(x):
+            if x == 'Intercept':
+                return x
+            else:
+                return self.quote(x)
 
-    def predict(self, **kwargs):
+        prstd, interval_l, interval_u = wls_prediction_std(fit,
+                                                           df_res.rename(columns=rename)[fit.model.exog_names],
+                                                           alpha=1-self.confint)
+        df_res['interval_l'] = interval_l
+        df_res['interval_u'] = interval_u
+
+        if 'Intercept' in df_res:
+            df_res.drop(labels=['Intercept'], axis=1, inplace=True)
+
+        return df_res
+
+    def add_prediction(self):
         """
         Add predictions and confidence interval to self.df
         self.df will contain the following columns:
@@ -299,14 +331,18 @@ class MultiVarLinReg(Analysis):
 
         Parameters
         ----------
-        confint : float (default=0.05)
-            Confidence level for two-sided hypothesis, if given, overrides the default one.
+        None, but the result depends on the following attributes of self:
+        confint : float (default=0.95)
+            Confidence level for two-sided hypothesis
+        allow_negative_predictions : bool (default=True)
+            If False, correct negative predictions to zero (typically for energy consumption predictions)
 
         Returns
         -------
         Nothing, adds columns to self.df
         """
-        self.df = self._predict(fit=self.fit, df=self.df, **kwargs)
+        self.df = self._predict(fit=self.fit, df=self.df)
+
 
     def plot(self, model=True, bar_chart=True, **kwargs):
         """
@@ -327,8 +363,6 @@ class MultiVarLinReg(Analysis):
             If the dataframe does not have a column 'predicted', a prediction will be made
         fit : statsmodels fit, default=None
             The model to be used.  if None, use self.fit
-        confint : float (default=0.05)
-            Confidence level for two-sided hypothesis, if given, overrides the default one.
 
         Returns
         -------
@@ -340,7 +374,7 @@ class MultiVarLinReg(Analysis):
         df = kwargs.get('df', self.df)
 
         if not 'predicted' in df.columns:
-            df = self._predict(fit=fit, df=df, confint=kwargs.get('confint', 0.05))
+            df = self._predict(fit=fit, df=df)
         # split the df in the auto-validation and prognosis part
         df_auto = df.ix[self.df.index[0]:self.df.index[-1], :]
         if df_auto.empty:

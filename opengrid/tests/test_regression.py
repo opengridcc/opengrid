@@ -33,13 +33,29 @@ class RegressionTest(unittest.TestCase):
         df_month = df.resample('MS').sum()
         df_month.rename(columns={'d5a7':'3*tempête !'}, inplace=True)
         mvlr = og.MultiVarLinReg(df_month, '313b', p_max=0.04)
-        mvlr.predict()
+        mvlr.add_prediction()
 
         self.assertListEqual(mvlr.df.columns.tolist(),
-                             df_month.columns.tolist() + ['Intercept', 'predicted', 'interval_l', 'interval_u'])
+                             df_month.columns.tolist() + ['predicted', 'interval_l', 'interval_u'])
 
+    def test_cross_validation(self):
+        df = datasets.get('gas_2016_hour')
+        df_month = df.resample('MS').sum()
+        mvlr = og.MultiVarLinReg(df_month, '313b', p_max=0.04, cross_validation=True)
+        self.assertTrue(hasattr(mvlr, 'list_of_fits'))
 
-
+    def test_prediction(self):
+        df = datasets.get('gas_2016_hour')
+        df_month = df.resample('MS').sum().loc['2016',:]
+        df_training = df_month.iloc[:-1,:]
+        df_pred = df_month.iloc[[-1],:]
+        mvlr = og.MultiVarLinReg(df_training, '313b', p_max=0.04)
+        df_pred_95 = mvlr._predict(mvlr.fit, df=df_pred)
+        mvlr.confint=0.98
+        df_pred_98 = mvlr._predict(mvlr.fit, df=df_pred)
+        self.assertAlmostEqual(df_pred_95.loc['2016-12-01', 'predicted'], df_pred_98.loc['2016-12-01', 'predicted'])
+        self.assertTrue(df_pred_98.loc['2016-12-01', 'interval_u'] > df_pred_95.loc['2016-12-01', 'interval_u'])
+        self.assertTrue(df_pred_98.loc['2016-12-01', 'interval_l'] < df_pred_95.loc['2016-12-01', 'interval_l'])
 
 
 if __name__ == '__main__':
