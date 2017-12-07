@@ -388,12 +388,13 @@ class MultiVarLinReg(Analysis):
                 exog1 = fit.model.formula.split('+')[1].strip()
             except IndexError:
                 exog1 = self.list_of_exog[0]
+            exog1 = self._unquote(exog1)
 
             # plot model as an adjusted trendline
             # get sorted model values
             dfmodel = df[[exog1, 'predicted', 'interval_u', 'interval_l']]
             dfmodel.index = dfmodel[exog1]
-            dfmodel.sort(inplace=True)
+            dfmodel.sort_index(inplace=True)
             plt.plot(dfmodel.index, dfmodel['predicted'], '--', color='royalblue')
             plt.plot(dfmodel.index, dfmodel['interval_l'], ':',  color='royalblue')
             plt.plot(dfmodel.index, dfmodel['interval_u'], ':', color='royalblue')

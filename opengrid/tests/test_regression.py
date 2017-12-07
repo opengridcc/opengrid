@@ -10,6 +10,11 @@ import pandas as pd
 
 import opengrid as og
 from opengrid import datasets
+import mock
+plt_mocked = mock.Mock()
+ax_mock = mock.Mock()
+fig_mock = mock.Mock()
+
 from opengrid.library.exceptions import EmptyDataFrameError
 
 
@@ -56,6 +61,16 @@ class RegressionTest(unittest.TestCase):
         self.assertAlmostEqual(df_pred_95.loc['2016-12-01', 'predicted'], df_pred_98.loc['2016-12-01', 'predicted'])
         self.assertTrue(df_pred_98.loc['2016-12-01', 'interval_u'] > df_pred_95.loc['2016-12-01', 'interval_u'])
         self.assertTrue(df_pred_98.loc['2016-12-01', 'interval_l'] < df_pred_95.loc['2016-12-01', 'interval_l'])
+
+
+    @mock.patch('opengrid.library.regression.plt', plt_mocked)
+    def test_plot(self):
+        df = datasets.get('gas_2016_hour')
+        df_month = df.resample('MS').sum()
+        mvlr = og.MultiVarLinReg(df_month, '313b', p_max=0.04)
+
+        with mock.patch.object(plt_mocked, 'subplots', return_value=(fig_mock, ax_mock)):
+            mvlr.plot()
 
 
 if __name__ == '__main__':
