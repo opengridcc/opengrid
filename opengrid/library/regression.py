@@ -13,6 +13,7 @@ import numpy as np
 import statsmodels.formula.api as fm
 from statsmodels.sandbox.regression.predstd import wls_prediction_std
 from copy import deepcopy
+import re
 
 from .analysis import Analysis
 
@@ -103,7 +104,7 @@ class MultiVarLinReg(Analysis):
 
         self.list_of_fits = []
         # first model is just the mean
-        self.list_of_fits.append(fm.ols(formula='{} ~ 1'.format(self.endog), data=self.df).fit())
+        self.list_of_fits.append(fm.ols(formula="Q('{}') ~ 1".format(self.endog), data=self.df).fit())
         # try to improve the model until no improvements can be found
         all_exog = self.list_of_exog[:]
         while all_exog:
@@ -112,7 +113,7 @@ class MultiVarLinReg(Analysis):
             best_fit = deepcopy(self.list_of_fits[-1])
             for x in all_exog:
                 # make new_fit, compare with best found so far
-                formula = self.list_of_fits[-1].model.formula + '+{}'.format(x)
+                formula = self.list_of_fits[-1].model.formula + "+Q('{}')".format(x)
                 fit = fm.ols(formula=formula, data=self.df).fit()
                 best_fit = self.find_best_bic([best_fit, fit])
 
@@ -189,8 +190,28 @@ class MultiVarLinReg(Analysis):
 
         self.fit = self.list_of_fits[-1]
 
+    def _unquote(self, list_of_str):
+        """
+        Return list of strings with Q('xxx') ==> xxx
 
+        Parameters
+        ----------
+        list_of_str : list of strings
 
+        Returns
+        -------
+        res: list of strings
+        """
+
+        res = []
+        for s in list_of_str:
+            match = re.findall(r"Q\('(.*?)'", s)
+            if match:
+                res += match
+            else:
+                res.append(s)
+
+        return res
 
     def _prune(self, fit, p_max):
         """
@@ -263,7 +284,7 @@ class MultiVarLinReg(Analysis):
         df['predicted'] = fit.predict(df)
         if not self.allow_negative_predictions:
             df.loc[df['predicted'] < 0, 'predicted'] = 0
-        prstd, interval_l, interval_u = wls_prediction_std(fit, df[fit.model.exog_names])
+        prstd, interval_l, interval_u = wls_prediction_std(fit, df[self._unquote(fit.model.exog_names)])
         df['interval_l'] = interval_l
         df['interval_u'] = interval_u
 
