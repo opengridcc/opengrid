@@ -62,6 +62,11 @@ class RegressionTest(unittest.TestCase):
         self.assertTrue(df_pred_98.loc['2016-12-01', 'interval_u'] > df_pred_95.loc['2016-12-01', 'interval_u'])
         self.assertTrue(df_pred_98.loc['2016-12-01', 'interval_l'] < df_pred_95.loc['2016-12-01', 'interval_l'])
 
+        # check limitation to zero
+        mvlr.allow_negative_predictions = False
+        mvlr.add_prediction()
+        self.assertTrue(mvlr.df['predicted'].min() >= 0)
+
 
     @mock.patch('opengrid.library.regression.plt', plt_mocked)
     def test_plot(self):
@@ -71,6 +76,17 @@ class RegressionTest(unittest.TestCase):
 
         with mock.patch.object(plt_mocked, 'subplots', return_value=(fig_mock, ax_mock)):
             mvlr.plot()
+
+    def test_alternative_metrics(self):
+        df = datasets.get('gas_2016_hour')
+        df_month = df.resample('MS').sum()
+        mvlr = og.MultiVarLinReg(df_month, '313b', p_max=0.04)
+        best_rsquared = mvlr.find_best_rsquared(mvlr.list_of_fits)
+        best_akaike = mvlr.find_best_akaike(mvlr.list_of_fits)
+        best_bic = mvlr.find_best_bic(mvlr.list_of_fits)
+        self.assertEqual(best_rsquared, best_akaike)
+        self.assertEqual(best_rsquared, best_bic)
+
 
 
 if __name__ == '__main__':
