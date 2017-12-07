@@ -87,6 +87,17 @@ class RegressionTest(unittest.TestCase):
         self.assertEqual(best_rsquared, best_akaike)
         self.assertEqual(best_rsquared, best_bic)
 
+    def test_prune(self):
+        "Create overfitted model and prune it"
+        df = datasets.get('gas_2016_hour')
+        df_month = df.resample('MS').sum()
+        mvlr = og.MultiVarLinReg(df_month, '313b')
+        self.assertTrue("Q('d5a7')" in mvlr.fit.model.exog_names)
+        pruned = mvlr._prune(mvlr.fit, 0.05)
+        self.assertTrue("Q('d5a7')" in pruned.model.exog_names)
+        pruned = mvlr._prune(mvlr.fit, 0.0001)
+        self.assertFalse("Q('d5a7')" in pruned.model.exog_names)
+
 
 
 if __name__ == '__main__':
