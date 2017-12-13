@@ -15,7 +15,7 @@ plt_mocked = mock.Mock()
 ax_mock = mock.Mock()
 fig_mock = mock.Mock()
 
-from opengrid.library.exceptions import EmptyDataFrameError
+from opengrid.library.exceptions import EmptyDataFrame
 
 
 class RegressionTest(unittest.TestCase):
