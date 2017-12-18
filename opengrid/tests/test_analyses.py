@@ -14,7 +14,7 @@ from opengrid.library.exceptions import EmptyDataFrameError
 
 
 class AnalysisTest(unittest.TestCase):
-    
+
     def test_standby(self):
         df = datasets.get('elec_power_min_1sensor')
         res = og.analysis.standby(df, 'D')
