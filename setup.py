@@ -31,7 +31,7 @@ if subprocess.call(["pip", "install", "-r", os.path.join(here, "requirements.txt
     raise Exception("Could not install dependencies")
 
 setup(
-    name=about['__name__'],
+    name=about['__title__'],
     version=about['__version__'],
     description=about['__summary__'],
     # long_description=long_description,

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-__all__ = ['__name__', '__summary__', '__url__', '__version__', '__author__', '__email__', '__license__']
+__all__ = ['__title__', '__summary__', '__url__', '__version__', '__author__', '__email__', '__license__']
 
-__name__ = 'opengrid'
+__title__ = 'opengrid'
 __summary__ = 'Open-source algorithms for data-driven building analysis and control'
 __version__ = '0.5.3'
 __author__ = 'Roel De Coninck and many others'
