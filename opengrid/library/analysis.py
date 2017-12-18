@@ -8,6 +8,7 @@ and return a dataframe or list of dataframes.
 
 import datetime as dt
 import pandas as pd
+import numpy as np
 from opengrid.library.exceptions import EmptyDataFrameError
 
 class Analysis(object):
@@ -78,3 +79,26 @@ def standby(df, resolution='d'):
     if df.empty:
         raise EmptyDataFrameError()
     return df.resample(resolution).min()
+
+
+def count_peaks(ts):
+    """
+    Toggle counter for gas boilers
+
+    Counts the number of times the gas consumption increases with more than 3kW
+
+    Parameters
+    ----------
+    ts: Pandas Series
+        Gas consumption in minute resolution
+
+    Returns
+    -------
+    int
+    """
+
+    on_toggles = ts.diff() > 3000
+    shifted = np.logical_not(on_toggles.shift(1))
+    result = on_toggles & shifted
+    count = result.sum()
+    return count
