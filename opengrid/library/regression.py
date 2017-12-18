@@ -18,7 +18,6 @@ import re
 from .analysis import Analysis
 
 
-
 class MultiVarLinReg(Analysis):
     """
     Multi-variable linear regression based on statsmodels and Ordinary Least Squares (ols)
@@ -68,7 +67,7 @@ class MultiVarLinReg(Analysis):
             If True, allow predictions to be negative.
             For gas consumption or PV production, this is not physical so allow_negative_predictions should be False
         """
-        self.df = df.copy()
+        self.df = df.copy()  # type: pd.DataFrame
         assert endog in self.df.columns, "The endogenous variable {} is not a column in the dataframe".format(endog)
         self.endog = endog
 
@@ -79,11 +78,10 @@ class MultiVarLinReg(Analysis):
         self.allow_negative_predictions = kwargs.get('allow_negative_predictions', False)
         try:
             self.list_of_exog.remove(self.endog)
-        except:
+        except ValueError:
             pass
 
         self.do_analysis()
-
 
     def do_analysis(self):
         """
@@ -94,7 +92,6 @@ class MultiVarLinReg(Analysis):
             return self._do_analysis_cross_validation()
         else:
             return self._do_analysis_no_cross_validation()
-
 
     def _do_analysis_no_cross_validation(self):
         """
@@ -129,7 +126,6 @@ class MultiVarLinReg(Analysis):
                 all_exog.remove(x)
         self.fit = self.list_of_fits[-1]
 
-
     def _do_analysis_cross_validation(self):
         """
         Find the best model (fit) based on cross-valiation (leave one out)
@@ -153,7 +149,7 @@ class MultiVarLinReg(Analysis):
         # try to improve the model until no improvements can be found
         all_exog = self.list_of_exog[:]
         while all_exog:
-            #import pdb;pdb.set_trace()
+            # import pdb;pdb.set_trace()
             # try each x in all_exog and overwrite if we find a better one
             # at the end of iteration (and not earlier), save the best of the iteration
             better_model_found = False
@@ -171,7 +167,7 @@ class MultiVarLinReg(Analysis):
                     errors.append(cross_prediction['predicted'] - cross_prediction[self.endog])
                 cverror = np.mean(np.abs(np.array(errors)))
                 # compare the model with the current fit
-                if  cverror < best['cverror']:
+                if cverror < best['cverror']:
                     # better model, keep it
                     # first, reidentify using all the datapoints
                     best['fit'] = fm.ols(formula=formula, data=self.df).fit()
@@ -203,8 +199,6 @@ class MultiVarLinReg(Analysis):
         -------
         string
         """
-
-
 
         match = re.findall(r"Q\('(.*?)'", s)
         if match:
@@ -247,26 +241,27 @@ class MultiVarLinReg(Analysis):
         """
 
         for par in fit.pvalues.where(fit.pvalues > p_max).dropna().index:
-
             corrected_formula = fit.model.formula.replace('+{}'.format(par), '')
             fit = fm.ols(formula=corrected_formula, data=self.df).fit()
         return fit
 
-    def find_best_rsquared(self, list_of_fits):
+    @staticmethod
+    def find_best_rsquared(list_of_fits):
         """Return the best fit, based on rsquared"""
         res = sorted(list_of_fits, key=lambda x: x.rsquared)
         return res[-1]
 
-    def find_best_akaike(self, list_of_fits):
+    @staticmethod
+    def find_best_akaike(list_of_fits):
         """Return the best fit, based on Akaike information criterion"""
         res = sorted(list_of_fits, key=lambda x: x.aic)
         return res[0]
 
-    def find_best_bic(self, list_of_fits):
+    @staticmethod
+    def find_best_bic(list_of_fits):
         """Return the best fit, based on Akaike information criterion"""
         res = sorted(list_of_fits, key=lambda x: x.bic)
         return res[0]
-
 
     def _predict(self, fit, df):
         """
@@ -313,7 +308,7 @@ class MultiVarLinReg(Analysis):
 
         prstd, interval_l, interval_u = wls_prediction_std(fit,
                                                            df_res.rename(columns=rename)[fit.model.exog_names],
-                                                           alpha=1-self.confint)
+                                                           alpha=1 - self.confint)
         df_res['interval_l'] = interval_l
         df_res['interval_u'] = interval_u
 
@@ -343,7 +338,6 @@ class MultiVarLinReg(Analysis):
         """
         self.df = self._predict(fit=self.fit, df=self.df)
 
-
     def plot(self, model=True, bar_chart=True, **kwargs):
         """
         Plot measurements and predictions.
@@ -358,6 +352,9 @@ class MultiVarLinReg(Analysis):
             If True, show the modified energy signature
         bar_chart : boolean, default=True
             If True, make a bar chart with predicted and measured data
+
+        Other Parameters
+        ----------------
         df : pandas Dataframe, default=None
             The data to be plotted.  If None, use self.df
             If the dataframe does not have a column 'predicted', a prediction will be made
@@ -380,7 +377,7 @@ class MultiVarLinReg(Analysis):
         if df_auto.empty:
             df_prog = df
         else:
-            df_prog = df.ix[df_auto.index[-1]:].iloc[1:,:]
+            df_prog = df.ix[df_auto.index[-1]:].iloc[1:, :]
 
         if model:
             # The first variable in the formula is the most significant.  Use it as abcis for the plot
@@ -396,13 +393,15 @@ class MultiVarLinReg(Analysis):
             dfmodel.index = dfmodel[exog1]
             dfmodel.sort_index(inplace=True)
             plt.plot(dfmodel.index, dfmodel['predicted'], '--', color='royalblue')
-            plt.plot(dfmodel.index, dfmodel['interval_l'], ':',  color='royalblue')
+            plt.plot(dfmodel.index, dfmodel['interval_l'], ':', color='royalblue')
             plt.plot(dfmodel.index, dfmodel['interval_u'], ':', color='royalblue')
             # plot dots for the measurements
             if len(df_auto) > 0:
-                plt.plot(df_auto[exog1], df_auto[self.endog], 'o', mfc='orangered', mec='orangered', ms=8, label='Data used for model fitting')
+                plt.plot(df_auto[exog1], df_auto[self.endog], 'o', mfc='orangered', mec='orangered', ms=8,
+                         label='Data used for model fitting')
             if len(df_prog) > 0:
-                plt.plot(df_prog[exog1], df_prog[self.endog], 'o', mfc='seagreen', mec='seagreen', ms=8, label='Data not used for model fitting')
+                plt.plot(df_prog[exog1], df_prog[self.endog], 'o', mfc='seagreen', mec='seagreen', ms=8,
+                         label='Data not used for model fitting')
             plt.title('{} - rsquared={} - BIC={}'.format(fit.model.formula, fit.rsquared, fit.bic))
             figures.append(plt.gcf())
 
@@ -411,9 +410,9 @@ class MultiVarLinReg(Analysis):
             width = 0.35  # the width of the bars
 
             fig, ax = plt.subplots()
-            title = 'Measured' # will be appended based on the available data
+            title = 'Measured'  # will be appended based on the available data
             if len(df_auto) > 0:
-                model = ax.bar(ind[:len(df_auto)], df_auto['predicted'], width*2, color='#FDD787', ecolor='#FDD787',
+                model = ax.bar(ind[:len(df_auto)], df_auto['predicted'], width * 2, color='#FDD787', ecolor='#FDD787',
                                yerr=df_auto['interval_u'] - df_auto['predicted'], label=self.endog + ' modelled')
                 title = title + ', modelled'
             if len(df_prog) > 0:
@@ -421,7 +420,7 @@ class MultiVarLinReg(Analysis):
                               yerr=df_prog['interval_u'] - df_prog['predicted'], label=self.endog + ' expected')
                 title = title + ' and predicted'
 
-            meas = ax.bar(ind+width/2., df[self.endog], width, label=self.endog + ' measured', color='#D5756C')
+            meas = ax.bar(ind + width / 2., df[self.endog], width, label=self.endog + ' measured', color='#D5756C')
             # add some text for labels, title and axes ticks
             ax.set_ylabel(self.endog)
             ax.set_title('{} {}'.format(title, self.endog))
@@ -430,11 +429,9 @@ class MultiVarLinReg(Analysis):
             ax.yaxis.grid(True)
             ax.xaxis.grid(False)
 
-
             plt.legend(ncol=3, loc='upper center')
             figures.append(plt.gcf())
 
         plt.show()
 
         return figures
-
