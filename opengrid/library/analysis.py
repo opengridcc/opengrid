@@ -11,6 +11,7 @@ import pandas as pd
 import numpy as np
 from opengrid.library.exceptions import EmptyDataFrame
 
+
 class Analysis(object):
     """
     Generic Analysis
@@ -19,6 +20,7 @@ class Analysis(object):
     self.result should be used as 'output dataframe'
     It also has output methods: plot, to json...
     """
+
     def __init__(self, df, *args, **kwargs):
         self.df = df
         self.do_analysis(*args, **kwargs)
@@ -42,6 +44,7 @@ class DailyAgg(Analysis):
     - within a time-range specified by starttime and endtime.
       This can be used eg. to get the minimum consumption during the night.
     """
+
     def __init__(self, df, agg, starttime=dt.time.min, endtime=dt.time.max):
         """
         Parameters

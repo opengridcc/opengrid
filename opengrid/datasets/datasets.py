@@ -1,11 +1,13 @@
 import pandas as pd
 import os
 
+
 class DatasetContainer:
     """
     This class contains the names and paths to the data sets,
     and has the ability to unpack them.
     """
+
     def __init__(self, paths=None):
         """
         You can initialise empty and add the paths later,
@@ -54,6 +56,7 @@ class DatasetContainer:
         df = pd.read_pickle(path, compression='gzip')
         return df
 
+
 directory = os.path.dirname(__file__)  # get the path to the `datasets` directory
 # list all filenames in this directory that have the extension `pkl`
 pickles = [filename for filename in os.listdir(directory) if filename.lower().endswith('.pkl')]
@@ -61,8 +64,10 @@ pickles = [filename for filename in os.listdir(directory) if filename.lower().en
 paths = [os.path.join(directory, filename) for filename in pickles]
 sets = DatasetContainer(paths)  # init container object
 
+
 def list_available():
     return sets.list
+
 
 def get(name):
     return sets.unpack(name)

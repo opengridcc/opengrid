@@ -3,36 +3,42 @@
 """
 A setuptools based setup module for opengrid.
 
-Adapted from 
+Adapted from
 https://packaging.python.org/en/latest/distributing.html
 https://github.com/pypa/sampleproject
 """
 
+import os
 # Always prefer setuptools over distutils
 from setuptools import setup, find_packages
 # To use a consistent encoding
 from codecs import open
-from os import path
 
-here = path.abspath(path.dirname(__file__))
+here = os.path.abspath(os.path.dirname(__file__))
+
+# adapted from https://packaging.python.org/guides/single-sourcing-package-version/#single-sourcing-the-version
+about = {}
+with open(os.path.join(here, 'opengrid', '__about__.py')) as fp:
+    exec (fp.read(), about)
 
 # Get the long description from the README file
-#with open(path.join(here, 'README.md'), encoding='utf-8') as f:
+# with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 #    long_description = f.read()
 
 import subprocess
-if subprocess.call(["pip", "install","-r", path.join(here, "requirements.txt"), "-v", "--no-cache"]):
+
+if subprocess.call(["pip", "install", "-r", os.path.join(here, "requirements.txt"), "-v", "--no-cache"]):
     raise Exception("Could not install dependencies")
 
 setup(
-    name='opengrid',
-    version="0.5.3",
-    description='Open-source algorithms for data-driven building analysis and control',
-    #long_description=long_description,
-    url='https://github.com/opengridcc/opengrid',
-    author='Roel De Coninck and many others',
-    author_email='roeldeconinck@gmail.com',
-    license='Apache 2.0',
+    name=about['__title__'],
+    version=about['__version__'],
+    description=about['__summary__'],
+    # long_description=long_description,
+    url=about['__url__'],
+    author=about['__author__'],
+    author_email=about['__email__'],
+    license=about['__license__'],
 
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
@@ -57,7 +63,7 @@ setup(
         'Programming Language :: Python :: 3.5',
     ],
 
-    keywords='algorithms buildings monitoring analysis control',
+    keywords=about['__keywords__'],
 
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
@@ -65,13 +71,13 @@ setup(
 
     # Alternatively, if you want to distribute just a my_module.py, uncomment
     # this:
-    #py_modules=["tmpo.py"],
+    # py_modules=["tmpo.py"],
 
     # If there are data files included in your packages that need to be
     # installed, specify them here.  If using Python 2.6 or less, then these
     # have to be included in MANIFEST.in as well.
     # Note: for creating the source distribution, they had to be included in the
-    # MANIFEST.in as well. 
+    # MANIFEST.in as well.
     package_data={
         'opengrid': ['notebooks/*'],
     },
