@@ -9,7 +9,7 @@ and return a dataframe or list of dataframes.
 import datetime as dt
 import pandas as pd
 import numpy as np
-from opengrid.library.exceptions import EmptyDataFrameError
+from opengrid.library.exceptions import EmptyDataFrame
 
 
 class Analysis(object):
@@ -80,7 +80,7 @@ def standby(df, resolution='d'):
     """
 
     if df.empty:
-        raise EmptyDataFrameError()
+        raise EmptyDataFrame()
     return df.resample(resolution).min()
 
 
