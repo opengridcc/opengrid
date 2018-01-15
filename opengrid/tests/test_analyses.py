@@ -10,7 +10,7 @@ import pandas as pd
 
 import opengrid as og
 from opengrid import datasets
-from opengrid.library.exceptions import EmptyDataFrameError
+from opengrid.library.exceptions import EmptyDataFrame
 
 
 class AnalysisTest(unittest.TestCase):
@@ -20,7 +20,7 @@ class AnalysisTest(unittest.TestCase):
         res = og.analysis.standby(df, 'D')
         self.assertEqual(res.index.tz.zone, 'Europe/Brussels')
 
-        self.assertRaises(EmptyDataFrameError, og.analysis.standby, pd.DataFrame)
+        self.assertRaises(EmptyDataFrame, og.analysis.standby, pd.DataFrame)
 
     def test_count_peaks(self):
         df = datasets.get('gas_dec2016_min')
