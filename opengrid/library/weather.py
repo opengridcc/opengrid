@@ -71,8 +71,6 @@ def compute_degree_days(ts, heating_base_temperatures, cooling_base_temperatures
         For each base temperature the heating degree-days will be computed
     cooling_base_temperatures: list
         For each base temperature the cooling degree-days will be computed
-    temperature: string (default='temperature')
-        Column name of the ambient (outside) temperature
 
     Returns
     -------
