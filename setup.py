@@ -82,5 +82,6 @@ setup(
     package_data={
         'opengrid': ['notebooks/*'],
     },
+    include_package_data=True,
     data_files=[('', ['LICENSE', 'README.md', 'requirements.txt'])]
 )
