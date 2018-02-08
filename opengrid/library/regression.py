@@ -146,34 +146,36 @@ class MultiVarLinReg(Analysis):
 
         # initialization: first model is the mean, but compute cv correctly.
         errors = []
-        formula = "Q('{}') ~ 1".format(self.y)
+        response_term = [Term([LookupFactor(self.y)])]
+        model_terms = [Term([])]  # empty term is the intercept
+        model_desc = ModelDesc(response_term, model_terms)
         for i in self.df.index:
             # make new_fit, compute cross-validation and store error
             df_ = self.df.drop(i, axis=0)
-            fit = fm.ols(formula=formula, data=df_).fit()
+            fit = fm.ols(model_desc, data=df_).fit()
             cross_prediction = self._predict(fit=fit, df=self.df.loc[[i], :])
             errors.append(cross_prediction['predicted'] - cross_prediction[self.y])
 
-        self.list_of_fits = [fm.ols(formula=formula, data=self.df).fit()]
+        self.list_of_fits = [fm.ols(model_desc, data=self.df).fit()]
         self.list_of_cverrors = [np.mean(np.abs(np.array(errors)))]
 
         # try to improve the model until no improvements can be found
-        all_exog = self.list_of_x[:]
-        while all_exog:
+        all_model_terms_dict = {x: Term([LookupFactor(x)]) for x in self.list_of_x}
+        while all_model_terms_dict:
             # import pdb;pdb.set_trace()
             # try each x in all_exog and overwrite if we find a better one
             # at the end of iteration (and not earlier), save the best of the iteration
             better_model_found = False
             best = dict(fit=self.list_of_fits[-1], cverror=self.list_of_cverrors[-1])
-            for x in all_exog:
-                formula = self.list_of_fits[-1].model.formula + "+Q('{}')".format(x)
+            for x, term in all_model_terms_dict.items():
+                model_desc = ModelDesc(response_term, self.list_of_fits[-1].model.formula.rhs_termlist + [term])
                 # cross_validation, currently only implemented for monthly data
                 # compute the mean error for a given formula based on leave-one-out.
                 errors = []
                 for i in self.df.index:
                     # make new_fit, compute cross-validation and store error
                     df_ = self.df.drop(i, axis=0)
-                    fit = fm.ols(formula=formula, data=df_).fit()
+                    fit = fm.ols(model_desc, data=df_).fit()
                     cross_prediction = self._predict(fit=fit, df=self.df.loc[[i], :])
                     errors.append(cross_prediction['predicted'] - cross_prediction[self.y])
                 cverror = np.mean(np.abs(np.array(errors)))
@@ -181,56 +183,24 @@ class MultiVarLinReg(Analysis):
                 if cverror < best['cverror']:
                     # better model, keep it
                     # first, reidentify using all the datapoints
-                    best['fit'] = fm.ols(formula=formula, data=self.df).fit()
+                    best['fit'] = fm.ols(model_desc, data=self.df).fit()
                     best['cverror'] = cverror
                     better_model_found = True
+                    best_x = x
 
             if better_model_found:
                 self.list_of_fits.append(best['fit'])
                 self.list_of_cverrors.append(best['cverror'])
+
             else:
                 # if we did not find a better model, exit
                 break
 
             # next iteration with the found exog removed
-            all_exog.remove(x)
+            all_model_terms_dict.pop(best_x)
 
         self.fit = self.list_of_fits[-1]
 
-    @staticmethod
-    def _unquote(s):
-        """
-        Return s with Q('xxx') ==> xxx (if found)
-
-        Parameters
-        ----------
-        s : string
-
-        Returns
-        -------
-        string
-        """
-
-        match = re.findall(r"Q\('(.*?)'", s)
-        if match:
-            return match[0]
-        else:
-            return s
-
-    @staticmethod
-    def quote(s):
-        """
-        Turn xxx into Q('xxx')
-
-        Parameters
-        ----------
-        s : string
-
-        Returns
-        -------
-        string
-        """
-        return "Q('{}')".format(s)
 
     def _prune(self, fit, p_max):
         """
@@ -251,9 +221,37 @@ class MultiVarLinReg(Analysis):
 
         """
 
-        for par in fit.pvalues.where(fit.pvalues > p_max).dropna().index:
-            corrected_formula = fit.model.formula.replace('+{}'.format(par), '')
-            fit = fm.ols(formula=corrected_formula, data=self.df).fit()
+        def remove_from_model_desc(x, model_desc):
+            """
+            Return a model_desc without x
+            """
+
+            rhs_termlist = []
+            for t in model_desc.rhs_termlist:
+                if not t.factors:
+                    # intercept, add anyway
+                    rhs_termlist.append(t)
+                elif not x == t.factors[0]._varname:
+                    # this is not the term with x
+                    rhs_termlist.append(t)
+
+            md = ModelDesc(model_desc.lhs_termlist, rhs_termlist)
+            return md
+
+        corrected_model_desc = ModelDesc(fit.model.formula.lhs_termlist[:], fit.model.formula.rhs_termlist[:])
+        pars_to_prune = fit.pvalues.where(fit.pvalues > p_max).dropna().index.tolist()
+        try:
+            pars_to_prune.remove('Intercept')
+        except:
+            pass
+        while pars_to_prune:
+            corrected_model_desc = remove_from_model_desc(pars_to_prune[0], corrected_model_desc)
+            fit = fm.ols(corrected_model_desc, data=self.df).fit()
+            pars_to_prune = fit.pvalues.where(fit.pvalues > p_max).dropna().index.tolist()
+            try:
+                pars_to_prune.remove('Intercept')
+            except:
+                pass
         return fit
 
     @staticmethod
@@ -378,19 +376,18 @@ class MultiVarLinReg(Analysis):
         if not 'predicted' in df.columns:
             df = self._predict(fit=fit, df=df)
         # split the df in the auto-validation and prognosis part
-        df_auto = df.ix[self.df.index[0]:self.df.index[-1], :]
+        df_auto = df.loc[self.df.index[0]:self.df.index[-1]]
         if df_auto.empty:
             df_prog = df
         else:
-            df_prog = df.ix[df_auto.index[-1]:].iloc[1:, :]
+            df_prog = df.loc[df_auto.index[-1]:].iloc[1:]
 
         if model:
             # The first variable in the formula is the most significant.  Use it as abcis for the plot
             try:
-                exog1 = fit.model.formula.split('+')[1].strip()
+                exog1 = fit.model.exog_names[1]
             except IndexError:
                 exog1 = self.list_of_x[0]
-            exog1 = self._unquote(exog1)
 
             # plot model as an adjusted trendline
             # get sorted model values
@@ -407,7 +404,8 @@ class MultiVarLinReg(Analysis):
             if len(df_prog) > 0:
                 plt.plot(df_prog[exog1], df_prog[self.y], 'o', mfc='seagreen', mec='seagreen', ms=8,
                          label='Data not used for model fitting')
-            plt.title('{} - rsquared={} - BIC={}'.format(fit.model.formula, fit.rsquared, fit.bic))
+            plt.title('rsquared={:.2f} - BIC={:.1f}'.format(fit.rsquared, fit.bic))
+            plt.xlabel(exog1)
             figures.append(plt.gcf())
 
         if bar_chart:

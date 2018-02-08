@@ -100,11 +100,13 @@ class RegressionTest(unittest.TestCase):
         df_month = df.resample('MS').sum()
         mvlr = og.MultiVarLinReg(df_month, '313b')
         mvlr.do_analysis()
-        self.assertTrue("d5a7" in mvlr.fit.model.exog_names)
+        print(mvlr.fit.pvalues)
+        self.assertTrue("ba14" in mvlr.fit.model.exog_names)
         pruned = mvlr._prune(mvlr.fit, 0.05)
-        self.assertTrue("d5a7" in pruned.model.exog_names)
-        pruned = mvlr._prune(mvlr.fit, 0.0001)
-        self.assertFalse("d5a7" in pruned.model.exog_names)
+        self.assertTrue("ba14" in pruned.model.exog_names)
+        pruned = mvlr._prune(mvlr.fit, 0.00009) # with this value, one of both x should be removed
+        self.assertFalse("ba14" in pruned.model.exog_names)
+        self.assertTrue("d5a7" in mvlr.fit.model.exog_names)
 
 
 if __name__ == '__main__':
