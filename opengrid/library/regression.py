@@ -123,11 +123,10 @@ class MultiVarLinReg(Analysis):
                     best_bic = fit.bic
                     best_fit = fit
                     best_x = x
-                #best_fit = self.find_best_bic([best_fit, fit])
 
             # Sometimes, the obtained fit may be better, but contains unsignificant parameters.
             # Correct the fit by removing the unsignificant parameters and estimate again
-            #best_fit = self._prune(best_fit, p_max=self.p_max)
+            best_fit = self._prune(best_fit, p_max=self.p_max)
 
             # if best_fit does not contain more variables than last fit in self.list_of_fits, exit
             if len(best_fit.model.formula.rhs_termlist) == len(self.list_of_fits[-1].model.formula.rhs_termlist):

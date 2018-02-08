@@ -100,7 +100,6 @@ class RegressionTest(unittest.TestCase):
         df_month = df.resample('MS').sum()
         mvlr = og.MultiVarLinReg(df_month, '313b')
         mvlr.do_analysis()
-        print(mvlr.fit.pvalues)
         self.assertTrue("ba14" in mvlr.fit.model.exog_names)
         pruned = mvlr._prune(mvlr.fit, 0.05)
         self.assertTrue("ba14" in pruned.model.exog_names)
