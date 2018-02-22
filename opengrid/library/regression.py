@@ -424,10 +424,10 @@ class MultiVarLinReg(Analysis):
                               yerr=df_prog['interval_u'] - df_prog['predicted'], label=self.y + ' expected')
                 title = title + ' and predicted'
 
-            meas = ax.bar(ind + width / 2., df[self.y], width, label=self.y + ' measured', color='#D5756C')
+            meas = ax.bar(ind, df[self.y], width, label=self.y + ' measured', color='#D5756C')
             # add some text for labels, title and axes ticks
             ax.set_title('{} {}'.format(title, self.y))
-            ax.set_xticks(ind + width)
+            ax.set_xticks(ind)
             ax.set_xticklabels([x.strftime('%d-%m-%Y') for x in df.index], rotation='vertical')
             ax.yaxis.grid(True)
             ax.xaxis.grid(False)
