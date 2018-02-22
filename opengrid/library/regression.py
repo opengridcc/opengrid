@@ -8,7 +8,8 @@ and return a dataframe or list of dataframes.
 import datetime as dt
 import pandas as pd
 
-import matplotlib.pyplot as plt
+from .plotting import plot_style
+plt = plot_style()
 import numpy as np
 import statsmodels.formula.api as fm
 from statsmodels.sandbox.regression.predstd import wls_prediction_std
@@ -113,23 +114,23 @@ class MultiVarLinReg(Analysis):
         while all_model_terms_dict:
             # try each x and overwrite the best_fit if we find a better one
             # the first best_fit is the one from the previous round
+            ref_fit = self.list_of_fits[-1]
             best_fit = self.list_of_fits[-1]
             best_bic = best_fit.bic
             for x, term in all_model_terms_dict.items():
                 # make new_fit, compare with best found so far
-                model_desc = ModelDesc(response_term, best_fit.model.formula.rhs_termlist + [term])
+                model_desc = ModelDesc(response_term, ref_fit.model.formula.rhs_termlist + [term])
                 fit = fm.ols(model_desc, data=self.df).fit()
                 if fit.bic < best_bic:
                     best_bic = fit.bic
                     best_fit = fit
                     best_x = x
-
             # Sometimes, the obtained fit may be better, but contains unsignificant parameters.
             # Correct the fit by removing the unsignificant parameters and estimate again
             best_fit = self._prune(best_fit, p_max=self.p_max)
 
-            # if best_fit does not contain more variables than last fit in self.list_of_fits, exit
-            if len(best_fit.model.formula.rhs_termlist) == len(self.list_of_fits[-1].model.formula.rhs_termlist):
+            # if best_fit does not contain more variables than ref fit, exit
+            if len(best_fit.model.formula.rhs_termlist) == len(ref_fit.model.formula.rhs_termlist):
                 break
             else:
                 self.list_of_fits.append(best_fit)
@@ -368,6 +369,7 @@ class MultiVarLinReg(Analysis):
         figures : List of plt.figure objects.
 
         """
+        plot_style()
         figures = []
         fit = kwargs.get('fit', self.fit)
         df = kwargs.get('df', self.df)
@@ -424,7 +426,6 @@ class MultiVarLinReg(Analysis):
 
             meas = ax.bar(ind + width / 2., df[self.y], width, label=self.y + ' measured', color='#D5756C')
             # add some text for labels, title and axes ticks
-            ax.set_ylabel(self.y)
             ax.set_title('{} {}'.format(title, self.y))
             ax.set_xticks(ind + width)
             ax.set_xticklabels([x.strftime('%d-%m-%Y') for x in df.index], rotation='vertical')

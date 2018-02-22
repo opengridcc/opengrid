@@ -103,9 +103,14 @@ class RegressionTest(unittest.TestCase):
         self.assertTrue("ba14" in mvlr.fit.model.exog_names)
         pruned = mvlr._prune(mvlr.fit, 0.05)
         self.assertTrue("ba14" in pruned.model.exog_names)
-        pruned = mvlr._prune(mvlr.fit, 0.00009) # with this value, one of both x should be removed
+        pruned = mvlr._prune(mvlr.fit, 0.00009) # with this value, both x will be removed, which is a bit counter-intuitive because initially only ba14 has a pvalue > p_max.
         self.assertFalse("ba14" in pruned.model.exog_names)
-        self.assertTrue("d5a7" in mvlr.fit.model.exog_names)
+        self.assertFalse("d5a7" in pruned.model.exog_names)
+
+        mvlr = og.MultiVarLinReg(df_month, '313b', p_max=0.00009)
+        mvlr.do_analysis()
+        self.assertFalse("ba14" in mvlr.fit.model.exog_names)
+        self.assertFalse("d5a7" in mvlr.fit.model.exog_names)
 
 
 if __name__ == '__main__':
