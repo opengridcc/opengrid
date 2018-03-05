@@ -438,3 +438,41 @@ class MultiVarLinReg(Analysis):
         plt.show()
 
         return figures
+
+
+class TestPickle(object):
+    """
+    Examples
+    --------
+    >>> from opengrid.library.regression import TestPickle
+    >>> import pickle
+    >>> tp = TestPickle('test')
+    >>> pickle.dump(tp, open('test.pkl', 'wb'))
+    """
+    def __init__(self, x):
+        setattr(self, 'x', [Term([LookupFactor('endog')])])
+
+    def __getstate__(self):
+        d = self.__dict__
+        d['temp'] = self.x[0].factors[0].name()
+        d.pop('x')
+        print("pickling, d={}".format(d))
+        return d
+
+    def __setstate__(self, state):
+        setattr(self, 'x', [Term([LookupFactor(state['temp'])])])
+
+import attr
+
+@attr.s
+class TestPickle2(object):
+    """
+    Examples
+    --------
+    >>> from opengrid.library.regression import TestPickle2
+    >>> import pickle
+    >>> tp = TestPickle2()
+    >>> pickle.dump(tp, open('test.pkl', 'wb'))
+    """
+    x = attr.ib([Term([LookupFactor('endog')])])
+
