@@ -8,10 +8,12 @@ and return a dataframe or list of dataframes.
 import datetime as dt
 import pandas as pd
 
-import matplotlib.pyplot as plt
+from .plotting import plot_style
+plt = plot_style()
 import numpy as np
 import statsmodels.formula.api as fm
 from statsmodels.sandbox.regression.predstd import wls_prediction_std
+from patsy import ModelDesc, Term, LookupFactor
 from copy import deepcopy
 import re
 
@@ -22,9 +24,9 @@ class MultiVarLinReg(Analysis):
     """
     Multi-variable linear regression based on statsmodels and Ordinary Least Squares (ols)
 
-    Pass a dataframe with the variable to be modelled (endogenous variable) and the possible independent (exogenous)
-    variables.  Specify as string the name of the endogenous variable, and optionally pass a list with names of
-    exogenous variables to try (by default all other columns will be tried as exogenous variables).
+    Pass a dataframe with the variable to be modelled y (dependent variable) and the possible independent variables x.
+    Specify as string the name of the dependent variable, and optionally pass a list with names of
+    independent variables to try (by default all other columns will be tried as independent variables).
 
     The analysis is based on a forward-selection approach: starting from a simple model, the model is iteratively
     refined and verified until no statistical relevant improvements can be obtained.  Each model in the iteration loop
@@ -38,25 +40,25 @@ class MultiVarLinReg(Analysis):
     --------
 
     >> mvlr = MultiVarLinReg(df, 'gas', p_max=0.04)
-    >> mvlr = MultiVarLinReg(df, 'gas', list_of_exog=['heatingDegreeDays14', 'GlobalHorizontalIrradiance', 'WindSpeed'])
+    >> mvlr = MultiVarLinReg(df, 'gas', list_of_x=['heatingDegreeDays14', 'GlobalHorizontalIrradiance', 'WindSpeed'])
 
 
     """
 
-    def __init__(self, df, endog, **kwargs):
+    def __init__(self, df, y, **kwargs):
         """
 
         Parameters
         ----------
         df : pd.DataFrame
             Datetimeindex and both endogenous and exogenous variables as columns
-        endog : str
+        y : str
             Name of the endogeneous variable to model
         p_max : float (default=0.05)
             Acceptable p-value of the t-statistic for estimated parameters
-        list_of_exog : list of str (default=None)
+        list_of_x : list of str (default=None)
             If None (default), try to build a model with all columns in the dataframe
-            If a list with column names is given, only try these columns as exogenous variables
+            If a list with column names is given, only try these columns as independent variables
         confint : float, default=0.95
             Two-sided confidence interval for predictions.
         cross_validation : bool, default=False
@@ -68,20 +70,20 @@ class MultiVarLinReg(Analysis):
             For gas consumption or PV production, this is not physical so allow_negative_predictions should be False
         """
         self.df = df.copy()  # type: pd.DataFrame
-        assert endog in self.df.columns, "The endogenous variable {} is not a column in the dataframe".format(endog)
-        self.endog = endog
+        assert y in self.df.columns, "The dependent variable {} is not a column in the dataframe".format(y)
+        self.y = y
 
         self.p_max = kwargs.get('p_max', 0.05)
-        self.list_of_exog = kwargs.get('list_of_exog', self.df.columns.tolist())
+        self.list_of_x = kwargs.get('list_of_x', self.df.columns.tolist())
         self.confint = kwargs.get('confint', 0.95)
         self.cross_validation = kwargs.get('cross_validation', False)
         self.allow_negative_predictions = kwargs.get('allow_negative_predictions', False)
         try:
-            self.list_of_exog.remove(self.endog)
+            self.list_of_x.remove(self.y)
         except ValueError:
             pass
 
-        self.do_analysis()
+        #self.do_analysis()
 
     def do_analysis(self):
         """
@@ -96,34 +98,43 @@ class MultiVarLinReg(Analysis):
     def _do_analysis_no_cross_validation(self):
         """
         Find the best model (fit) and create self.list_of_fits and self.fit
-
         """
 
         self.list_of_fits = []
         # first model is just the mean
-        self.list_of_fits.append(fm.ols(formula="Q('{}') ~ 1".format(self.endog), data=self.df).fit())
+        response_term = [Term([LookupFactor(self.y)])]
+        model_terms = [Term([])] # empty term is the intercept
+        all_model_terms_dict = {x:Term([LookupFactor(x)]) for x in self.list_of_x}
+        # ...then add another term for each candidate
+        #model_terms += [Term([LookupFactor(c)]) for c in candidates]
+        model_desc = ModelDesc(response_term, model_terms)
+        self.list_of_fits.append(fm.ols(model_desc, data=self.df).fit())
         # try to improve the model until no improvements can be found
-        all_exog = self.list_of_exog[:]
-        while all_exog:
-            # try each x in all_exog and overwrite the best_fit if we find a better one
-            # the first best_fit is the one from the previous round
-            best_fit = deepcopy(self.list_of_fits[-1])
-            for x in all_exog:
-                # make new_fit, compare with best found so far
-                formula = self.list_of_fits[-1].model.formula + "+Q('{}')".format(x)
-                fit = fm.ols(formula=formula, data=self.df).fit()
-                best_fit = self.find_best_bic([best_fit, fit])
 
+        while all_model_terms_dict:
+            # try each x and overwrite the best_fit if we find a better one
+            # the first best_fit is the one from the previous round
+            ref_fit = self.list_of_fits[-1]
+            best_fit = self.list_of_fits[-1]
+            best_bic = best_fit.bic
+            for x, term in all_model_terms_dict.items():
+                # make new_fit, compare with best found so far
+                model_desc = ModelDesc(response_term, ref_fit.model.formula.rhs_termlist + [term])
+                fit = fm.ols(model_desc, data=self.df).fit()
+                if fit.bic < best_bic:
+                    best_bic = fit.bic
+                    best_fit = fit
+                    best_x = x
             # Sometimes, the obtained fit may be better, but contains unsignificant parameters.
             # Correct the fit by removing the unsignificant parameters and estimate again
             best_fit = self._prune(best_fit, p_max=self.p_max)
 
-            # if best_fit does not contain more variables than last fit in self.list_of_fits, exit
-            if best_fit.model.formula in self.list_of_fits[-1].model.formula:
+            # if best_fit does not contain more variables than ref fit, exit
+            if len(best_fit.model.formula.rhs_termlist) == len(ref_fit.model.formula.rhs_termlist):
                 break
             else:
                 self.list_of_fits.append(best_fit)
-                all_exog.remove(x)
+                all_model_terms_dict.pop(best_x)
         self.fit = self.list_of_fits[-1]
 
     def _do_analysis_cross_validation(self):
@@ -135,91 +146,61 @@ class MultiVarLinReg(Analysis):
 
         # initialization: first model is the mean, but compute cv correctly.
         errors = []
-        formula = "Q('{}') ~ 1".format(self.endog)
+        response_term = [Term([LookupFactor(self.y)])]
+        model_terms = [Term([])]  # empty term is the intercept
+        model_desc = ModelDesc(response_term, model_terms)
         for i in self.df.index:
             # make new_fit, compute cross-validation and store error
             df_ = self.df.drop(i, axis=0)
-            fit = fm.ols(formula=formula, data=df_).fit()
+            fit = fm.ols(model_desc, data=df_).fit()
             cross_prediction = self._predict(fit=fit, df=self.df.loc[[i], :])
-            errors.append(cross_prediction['predicted'] - cross_prediction[self.endog])
+            errors.append(cross_prediction['predicted'] - cross_prediction[self.y])
 
-        self.list_of_fits = [fm.ols(formula=formula, data=self.df).fit()]
+        self.list_of_fits = [fm.ols(model_desc, data=self.df).fit()]
         self.list_of_cverrors = [np.mean(np.abs(np.array(errors)))]
 
         # try to improve the model until no improvements can be found
-        all_exog = self.list_of_exog[:]
-        while all_exog:
+        all_model_terms_dict = {x: Term([LookupFactor(x)]) for x in self.list_of_x}
+        while all_model_terms_dict:
             # import pdb;pdb.set_trace()
             # try each x in all_exog and overwrite if we find a better one
             # at the end of iteration (and not earlier), save the best of the iteration
             better_model_found = False
             best = dict(fit=self.list_of_fits[-1], cverror=self.list_of_cverrors[-1])
-            for x in all_exog:
-                formula = self.list_of_fits[-1].model.formula + "+Q('{}')".format(x)
+            for x, term in all_model_terms_dict.items():
+                model_desc = ModelDesc(response_term, self.list_of_fits[-1].model.formula.rhs_termlist + [term])
                 # cross_validation, currently only implemented for monthly data
                 # compute the mean error for a given formula based on leave-one-out.
                 errors = []
                 for i in self.df.index:
                     # make new_fit, compute cross-validation and store error
                     df_ = self.df.drop(i, axis=0)
-                    fit = fm.ols(formula=formula, data=df_).fit()
+                    fit = fm.ols(model_desc, data=df_).fit()
                     cross_prediction = self._predict(fit=fit, df=self.df.loc[[i], :])
-                    errors.append(cross_prediction['predicted'] - cross_prediction[self.endog])
+                    errors.append(cross_prediction['predicted'] - cross_prediction[self.y])
                 cverror = np.mean(np.abs(np.array(errors)))
                 # compare the model with the current fit
                 if cverror < best['cverror']:
                     # better model, keep it
                     # first, reidentify using all the datapoints
-                    best['fit'] = fm.ols(formula=formula, data=self.df).fit()
+                    best['fit'] = fm.ols(model_desc, data=self.df).fit()
                     best['cverror'] = cverror
                     better_model_found = True
+                    best_x = x
 
             if better_model_found:
                 self.list_of_fits.append(best['fit'])
                 self.list_of_cverrors.append(best['cverror'])
+
             else:
                 # if we did not find a better model, exit
                 break
 
             # next iteration with the found exog removed
-            all_exog.remove(x)
+            all_model_terms_dict.pop(best_x)
 
         self.fit = self.list_of_fits[-1]
 
-    @staticmethod
-    def _unquote(s):
-        """
-        Return s with Q('xxx') ==> xxx (if found)
-
-        Parameters
-        ----------
-        s : string
-
-        Returns
-        -------
-        string
-        """
-
-        match = re.findall(r"Q\('(.*?)'", s)
-        if match:
-            return match[0]
-        else:
-            return s
-
-    @staticmethod
-    def quote(s):
-        """
-        Turn xxx into Q('xxx')
-
-        Parameters
-        ----------
-        s : string
-
-        Returns
-        -------
-        string
-        """
-        return "Q('{}')".format(s)
 
     def _prune(self, fit, p_max):
         """
@@ -240,9 +221,37 @@ class MultiVarLinReg(Analysis):
 
         """
 
-        for par in fit.pvalues.where(fit.pvalues > p_max).dropna().index:
-            corrected_formula = fit.model.formula.replace('+{}'.format(par), '')
-            fit = fm.ols(formula=corrected_formula, data=self.df).fit()
+        def remove_from_model_desc(x, model_desc):
+            """
+            Return a model_desc without x
+            """
+
+            rhs_termlist = []
+            for t in model_desc.rhs_termlist:
+                if not t.factors:
+                    # intercept, add anyway
+                    rhs_termlist.append(t)
+                elif not x == t.factors[0]._varname:
+                    # this is not the term with x
+                    rhs_termlist.append(t)
+
+            md = ModelDesc(model_desc.lhs_termlist, rhs_termlist)
+            return md
+
+        corrected_model_desc = ModelDesc(fit.model.formula.lhs_termlist[:], fit.model.formula.rhs_termlist[:])
+        pars_to_prune = fit.pvalues.where(fit.pvalues > p_max).dropna().index.tolist()
+        try:
+            pars_to_prune.remove('Intercept')
+        except:
+            pass
+        while pars_to_prune:
+            corrected_model_desc = remove_from_model_desc(pars_to_prune[0], corrected_model_desc)
+            fit = fm.ols(corrected_model_desc, data=self.df).fit()
+            pars_to_prune = fit.pvalues.where(fit.pvalues > p_max).dropna().index.tolist()
+            try:
+                pars_to_prune.remove('Intercept')
+            except:
+                pass
         return fit
 
     @staticmethod
@@ -300,14 +309,8 @@ class MultiVarLinReg(Analysis):
         if not self.allow_negative_predictions:
             df_res.loc[df_res['predicted'] < 0, 'predicted'] = 0
 
-        def rename(x):
-            if x == 'Intercept':
-                return x
-            else:
-                return self.quote(x)
-
         prstd, interval_l, interval_u = wls_prediction_std(fit,
-                                                           df_res.rename(columns=rename)[fit.model.exog_names],
+                                                           df_res[fit.model.exog_names],
                                                            alpha=1 - self.confint)
         df_res['interval_l'] = interval_l
         df_res['interval_u'] = interval_u
@@ -366,6 +369,7 @@ class MultiVarLinReg(Analysis):
         figures : List of plt.figure objects.
 
         """
+        plot_style()
         figures = []
         fit = kwargs.get('fit', self.fit)
         df = kwargs.get('df', self.df)
@@ -373,19 +377,18 @@ class MultiVarLinReg(Analysis):
         if not 'predicted' in df.columns:
             df = self._predict(fit=fit, df=df)
         # split the df in the auto-validation and prognosis part
-        df_auto = df.ix[self.df.index[0]:self.df.index[-1], :]
+        df_auto = df.loc[self.df.index[0]:self.df.index[-1]]
         if df_auto.empty:
             df_prog = df
         else:
-            df_prog = df.ix[df_auto.index[-1]:].iloc[1:, :]
+            df_prog = df.loc[df_auto.index[-1]:].iloc[1:]
 
         if model:
             # The first variable in the formula is the most significant.  Use it as abcis for the plot
             try:
-                exog1 = fit.model.formula.split('+')[1].strip()
+                exog1 = fit.model.exog_names[1]
             except IndexError:
-                exog1 = self.list_of_exog[0]
-            exog1 = self._unquote(exog1)
+                exog1 = self.list_of_x[0]
 
             # plot model as an adjusted trendline
             # get sorted model values
@@ -397,12 +400,13 @@ class MultiVarLinReg(Analysis):
             plt.plot(dfmodel.index, dfmodel['interval_u'], ':', color='royalblue')
             # plot dots for the measurements
             if len(df_auto) > 0:
-                plt.plot(df_auto[exog1], df_auto[self.endog], 'o', mfc='orangered', mec='orangered', ms=8,
+                plt.plot(df_auto[exog1], df_auto[self.y], 'o', mfc='orangered', mec='orangered', ms=8,
                          label='Data used for model fitting')
             if len(df_prog) > 0:
-                plt.plot(df_prog[exog1], df_prog[self.endog], 'o', mfc='seagreen', mec='seagreen', ms=8,
+                plt.plot(df_prog[exog1], df_prog[self.y], 'o', mfc='seagreen', mec='seagreen', ms=8,
                          label='Data not used for model fitting')
-            plt.title('{} - rsquared={} - BIC={}'.format(fit.model.formula, fit.rsquared, fit.bic))
+            plt.title('rsquared={:.2f} - BIC={:.1f}'.format(fit.rsquared, fit.bic))
+            plt.xlabel(exog1)
             figures.append(plt.gcf())
 
         if bar_chart:
@@ -413,18 +417,17 @@ class MultiVarLinReg(Analysis):
             title = 'Measured'  # will be appended based on the available data
             if len(df_auto) > 0:
                 model = ax.bar(ind[:len(df_auto)], df_auto['predicted'], width * 2, color='#FDD787', ecolor='#FDD787',
-                               yerr=df_auto['interval_u'] - df_auto['predicted'], label=self.endog + ' modelled')
+                               yerr=df_auto['interval_u'] - df_auto['predicted'], label=self.y + ' modelled')
                 title = title + ', modelled'
             if len(df_prog) > 0:
                 prog = ax.bar(ind[len(df_auto):], df_prog['predicted'], width * 2, color='#6CD5A1', ecolor='#6CD5A1',
-                              yerr=df_prog['interval_u'] - df_prog['predicted'], label=self.endog + ' expected')
+                              yerr=df_prog['interval_u'] - df_prog['predicted'], label=self.y + ' expected')
                 title = title + ' and predicted'
 
-            meas = ax.bar(ind + width / 2., df[self.endog], width, label=self.endog + ' measured', color='#D5756C')
+            meas = ax.bar(ind, df[self.y], width, label=self.y + ' measured', color='#D5756C')
             # add some text for labels, title and axes ticks
-            ax.set_ylabel(self.endog)
-            ax.set_title('{} {}'.format(title, self.endog))
-            ax.set_xticks(ind + width)
+            ax.set_title('{} {}'.format(title, self.y))
+            ax.set_xticks(ind)
             ax.set_xticklabels([x.strftime('%d-%m-%Y') for x in df.index], rotation='vertical')
             ax.yaxis.grid(True)
             ax.xaxis.grid(False)

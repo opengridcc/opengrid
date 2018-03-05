@@ -25,6 +25,7 @@ class RegressionTest(unittest.TestCase):
         df = datasets.get('gas_2016_hour')
         df_month = df.resample('MS').sum()
         mvlr = og.MultiVarLinReg(df_month, '313b', p_max=0.04)
+        mvlr.do_analysis()
         self.assertTrue(hasattr(mvlr, 'list_of_fits'))
 
     def test_strange_names(self):
@@ -32,6 +33,7 @@ class RegressionTest(unittest.TestCase):
         df_month = df.resample('MS').sum()
         df_month.rename(columns={'d5a7': '3*tempête !'}, inplace=True)
         mvlr = og.MultiVarLinReg(df_month, '313b', p_max=0.04)
+        mvlr.do_analysis()
         self.assertTrue(hasattr(mvlr, 'list_of_fits'))
 
     def test_predict(self):
@@ -39,6 +41,7 @@ class RegressionTest(unittest.TestCase):
         df_month = df.resample('MS').sum()
         df_month.rename(columns={'d5a7': '3*tempête !'}, inplace=True)
         mvlr = og.MultiVarLinReg(df_month, '313b', p_max=0.04)
+        mvlr.do_analysis()
         mvlr.add_prediction()
 
         self.assertListEqual(mvlr.df.columns.tolist(),
@@ -48,6 +51,7 @@ class RegressionTest(unittest.TestCase):
         df = datasets.get('gas_2016_hour')
         df_month = df.resample('MS').sum()
         mvlr = og.MultiVarLinReg(df_month, '313b', p_max=0.04, cross_validation=True)
+        mvlr.do_analysis()
         self.assertTrue(hasattr(mvlr, 'list_of_fits'))
 
     def test_prediction(self):
@@ -56,6 +60,7 @@ class RegressionTest(unittest.TestCase):
         df_training = df_month.iloc[:-1, :]
         df_pred = df_month.iloc[[-1], :]
         mvlr = og.MultiVarLinReg(df_training, '313b', p_max=0.04)
+        mvlr.do_analysis()
         df_pred_95 = mvlr._predict(mvlr.fit, df=df_pred)
         mvlr.confint = 0.98
         df_pred_98 = mvlr._predict(mvlr.fit, df=df_pred)
@@ -73,6 +78,7 @@ class RegressionTest(unittest.TestCase):
         df = datasets.get('gas_2016_hour')
         df_month = df.resample('MS').sum()
         mvlr = og.MultiVarLinReg(df_month, '313b', p_max=0.04)
+        mvlr.do_analysis()
 
         with mock.patch.object(plt_mocked, 'subplots', return_value=(fig_mock, ax_mock)):
             mvlr.plot()
@@ -81,6 +87,7 @@ class RegressionTest(unittest.TestCase):
         df = datasets.get('gas_2016_hour')
         df_month = df.resample('MS').sum()
         mvlr = og.MultiVarLinReg(df_month, '313b', p_max=0.04)
+        mvlr.do_analysis()
         best_rsquared = mvlr.find_best_rsquared(mvlr.list_of_fits)
         best_akaike = mvlr.find_best_akaike(mvlr.list_of_fits)
         best_bic = mvlr.find_best_bic(mvlr.list_of_fits)
@@ -92,11 +99,18 @@ class RegressionTest(unittest.TestCase):
         df = datasets.get('gas_2016_hour')
         df_month = df.resample('MS').sum()
         mvlr = og.MultiVarLinReg(df_month, '313b')
-        self.assertTrue("Q('d5a7')" in mvlr.fit.model.exog_names)
+        mvlr.do_analysis()
+        self.assertTrue("ba14" in mvlr.fit.model.exog_names)
         pruned = mvlr._prune(mvlr.fit, 0.05)
-        self.assertTrue("Q('d5a7')" in pruned.model.exog_names)
-        pruned = mvlr._prune(mvlr.fit, 0.0001)
-        self.assertFalse("Q('d5a7')" in pruned.model.exog_names)
+        self.assertTrue("ba14" in pruned.model.exog_names)
+        pruned = mvlr._prune(mvlr.fit, 0.00009) # with this value, both x will be removed, which is a bit counter-intuitive because initially only ba14 has a pvalue > p_max.
+        self.assertFalse("ba14" in pruned.model.exog_names)
+        self.assertFalse("d5a7" in pruned.model.exog_names)
+
+        mvlr = og.MultiVarLinReg(df_month, '313b', p_max=0.00009)
+        mvlr.do_analysis()
+        self.assertFalse("ba14" in mvlr.fit.model.exog_names)
+        self.assertFalse("d5a7" in mvlr.fit.model.exog_names)
 
 
 if __name__ == '__main__':
