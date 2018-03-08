@@ -477,48 +477,28 @@ class MultiVarLinReg(Analysis):
         and decompose it into a dictionary.  This dictionary is stored in the list 'formulas',
         one dict per fit.
 
-        Of course we have to remove the fit.model.formula entirely, it is built-up again
+        Finally we have to remove each fit entirely (not just the formula), it is built-up again
         from self.formulas in the __setstate__ method.
         """
-
         d = self.__dict__
         d['formulas'] = []
         for fit in self.list_of_fits:
                 d['formulas'].append(self._modeldesc_to_dict(fit.model.formula))
-                delattr(fit.model, 'formula')
+                #delattr(fit.model, 'formula')
+        d.pop('list_of_fits')
+        d.pop('fit')
         
         print("Pickling...  Removing the 'formula' from each fit.model.\n\
-             You have to unpickle your object or run __setstate__ to restore them.".format(d))
+             You have to unpickle your object or run __setstate__(self.__dict__) to restore them.".format(d))
         return d
 
     def __setstate__(self, state):
         """Restore the attributes that cannot be pickled"""
-        for fit, formula in zip(self.list_of_fits, state['formulas']):
-            fit.model.formula = self._modeldesc_from_dict(formula)
-        delattr(self, 'formulas')
-
-
-
-class TestPickle(object):
-    """
-    Examples
-    --------
-    >>> from opengrid.library.regression import TestPickle
-    >>> import pickle
-    >>> tp = TestPickle('test')
-    >>> pickle.dump(tp, open('test.pkl', 'wb'))
-    """
-    def __init__(self, x):
-        setattr(self, 'x', [Term([LookupFactor('endog')])])
-
-    def __getstate__(self):
-        d = self.__dict__
-        d['temp'] = self.x[0].factors[0].name()
-        d.pop('x')
-        print("pickling, d={}".format(d))
-        return d
-
-    def __setstate__(self, state):
-        setattr(self, 'x', [Term([LookupFactor(state['temp'])])])
-
+        for k,v in state.items():
+            if k is not 'formulas':
+                setattr(self, k, v)
+        self.list_of_fits = []
+        for formula in state['formulas']:
+            self.list_of_fits.append(fm.ols(self._modeldesc_from_dict(formula), data=self.df).fit())
+        self.fit = self.list_of_fits[-1]
 
