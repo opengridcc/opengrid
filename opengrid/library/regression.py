@@ -439,6 +439,65 @@ class MultiVarLinReg(Analysis):
 
         return figures
 
+    def _modeldesc_to_dict(self, md):
+        """Return a string representation of a patsy ModelDesc object"""
+        d = {'lhs_termlist': [md.lhs_termlist[0].factors[0].name()]}
+        rhs_termlist = []
+
+        # add other terms, if any
+        for term in md.rhs_termlist[:]:
+            if len(term.factors) == 0:
+                # intercept, represent by empty string
+                rhs_termlist.append('')
+            else:
+                rhs_termlist.append(term.factors[0].name())
+
+        d['rhs_termlist'] = rhs_termlist
+        return d
+
+    def _modeldesc_from_dict(self, d):
+        """Return a string representation of a patsy ModelDesc object"""
+        lhs_termlist = [Term([LookupFactor(d['lhs_termlist'][0])])]
+        rhs_termlist = []
+        for name in d['rhs_termlist']:
+            if name == '':
+                rhs_termlist.append(Term([]))
+            else:
+                rhs_termlist.append(Term([LookupFactor(name)]))
+
+        md = ModelDesc(lhs_termlist, rhs_termlist)
+        return md
+
+    def __getstate__(self):
+        """
+        Remove attributes that cannot be pickled and store as dict.
+
+        Each fit has a model.formula which is a patsy ModelDesc and this cannot be pickled.
+        We use our knowledge of this ModelDesc (as we build it up manually in the do_analysis() method)
+        and decompose it into a dictionary.  This dictionary is stored in the list 'formulas',
+        one dict per fit.
+
+        Of course we have to remove the fit.model.formula entirely, it is built-up again
+        from self.formulas in the __setstate__ method.
+        """
+
+        d = self.__dict__
+        d['formulas'] = []
+        for fit in self.list_of_fits:
+                d['formulas'].append(self._modeldesc_to_dict(fit.model.formula))
+                delattr(fit.model, 'formula')
+        
+        print("Pickling...  Removing the 'formula' from each fit.model.\n\
+             You have to unpickle your object or run __setstate__ to restore them.".format(d))
+        return d
+
+    def __setstate__(self, state):
+        """Restore the attributes that cannot be pickled"""
+        for fit, formula in zip(self.list_of_fits, state['formulas']):
+            fit.model.formula = self._modeldesc_from_dict(formula)
+        delattr(self, 'formulas')
+
+
 
 class TestPickle(object):
     """
@@ -462,17 +521,4 @@ class TestPickle(object):
     def __setstate__(self, state):
         setattr(self, 'x', [Term([LookupFactor(state['temp'])])])
 
-import attr
-
-@attr.s
-class TestPickle2(object):
-    """
-    Examples
-    --------
-    >>> from opengrid.library.regression import TestPickle2
-    >>> import pickle
-    >>> tp = TestPickle2()
-    >>> pickle.dump(tp, open('test.pkl', 'wb'))
-    """
-    x = attr.ib([Term([LookupFactor('endog')])])
 
