@@ -11,6 +11,7 @@ import pandas as pd
 import opengrid as og
 from opengrid import datasets
 import mock
+import pickle
 
 plt_mocked = mock.Mock()
 ax_mock = mock.Mock()
@@ -111,6 +112,22 @@ class RegressionTest(unittest.TestCase):
         mvlr.do_analysis()
         self.assertFalse("ba14" in mvlr.fit.model.exog_names)
         self.assertFalse("d5a7" in mvlr.fit.model.exog_names)
+
+    def test_pickle_round_trip(self):
+        "Pickle, unpickle and check results"
+        df = datasets.get('gas_2016_hour')
+        df_month = df.resample('MS').sum().loc['2016', :]
+        df_training = df_month.iloc[:-1, :]
+        df_pred = df_month.iloc[[-1], :]
+        mvlr = og.MultiVarLinReg(df_training, '313b', p_max=0.04)
+        mvlr.do_analysis()
+        df_pred_95_orig = mvlr._predict(mvlr.fit, df=df_pred)
+
+        s = pickle.dumps(mvlr)
+        m = pickle.loads(s)
+        self.assertTrue(hasattr(m, 'list_of_fits'))
+        df_pred_95_roundtrip = m._predict(m.fit, df=df_pred)
+        self.assertAlmostEqual(df_pred_95_orig.loc['2016-12-01', 'predicted'], df_pred_95_roundtrip.loc['2016-12-01', 'predicted'])
 
 
 if __name__ == '__main__':
