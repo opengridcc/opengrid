@@ -7,7 +7,7 @@ import datetime
 import pandas as pd
 
 
-def week_schedule(index, on_time='9:00', off_time='17:00', off_days=None):
+def week_schedule(index, on_time=None, off_time=None, off_days=None):
     """ Return boolean time series following given week schedule.
 
     Parameters
