@@ -9,6 +9,7 @@ and return a dataframe or list of dataframes.
 import datetime as dt
 import pandas as pd
 import numpy as np
+import numbers
 from opengrid.library.exceptions import EmptyDataFrame
 
 
@@ -68,7 +69,7 @@ class DailyAgg(Analysis):
             self.result = pd.DataFrame()
 
 
-def standby(df, resolution='d'):
+def standby(df, resolution='24h', time_window=None):
     """
     Compute standby power
 
@@ -76,11 +77,38 @@ def standby(df, resolution='d'):
     ----------
     df : Pandas DataFrame
         Electricity Power
-    resolution : str
+    resolution : str, default='d'
+        Resolution of the computation.  Data will be resampled to this resolution (as mean) before computation
+        of the minimum.
+        String that can be parsed by the pandas resample function, example ='h', '15min', '6h'
+    time_window : tuple with start-hour and end-hour, default=None
+        Specify the start-time and end-time for the analysis.
+        Only data within this time window will be considered.
+        Both times have to be specified as string ('01:00', '06:30') or as datetime.time() objects
+
+    Returns
+    -------
+    df : pandas.Series with DateTimeIndex in the given resolution
     """
+
+    def parse_time(t):
+        if isinstance(t, numbers.Number):
+            return pd.Timestamp.utcfromtimestamp(t).time()
+        else:
+            return pd.Timestamp(t).time()
 
     if df.empty:
         raise EmptyDataFrame()
+    # first filter based on the time-window
+    if time_window is not None:
+        t_start = parse_time(time_window[0])
+        t_end = parse_time(time_window[1])
+        if t_start > t_end:
+            # start before midnight
+            df = df[(df.index.time >= t_start) | (df.index.time < t_end)]
+        else:
+            df = df[(df.index.time >= t_start) & (df.index.time < t_end)]
+
     return df.resample(resolution).min()
 
 
