@@ -134,8 +134,9 @@ def share_of_standby(df, resolution='24h', time_window=None):
     fraction : float between 0-1 with the share of the standby consumption
     """
 
-    p_sb = standby(df, resolution, time_window)
-    df_resampled = df.resample(resolution).mean()
+    df_ = pd.DataFrame(df)
+    p_sb = standby(df_, resolution, time_window)
+    df_resampled = df_.resample(resolution).mean()
     p_tot = df_resampled.sum()
     p_standby = p_sb.sum()
     share_standby = p_standby/p_tot
