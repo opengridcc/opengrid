@@ -112,6 +112,36 @@ def standby(df, resolution='24h', time_window=None):
     return df.resample(resolution).min()
 
 
+def share_of_standby(df, resolution='24h', time_window=None):
+    """
+    Compute the share of the standby power in the total consumption.
+
+    Parameters
+    ----------
+    df : Pandas DataFrame
+        Power (typically electricity, can be anything)
+    resolution : str, default='d'
+        Resolution of the computation.  Data will be resampled to this resolution (as mean) before computation
+        of the minimum.
+        String that can be parsed by the pandas resample function, example ='h', '15min', '6h'
+    time_window : tuple with start-hour and end-hour, default=None
+        Specify the start-time and end-time for the analysis.
+        Only data within this time window will be considered.
+        Both times have to be specified as string ('01:00', '06:30') or as datetime.time() objects
+
+    Returns
+    -------
+    fraction : float between 0-1 with the share of the standby consumption
+    """
+
+    p_sb = standby(df, resolution, time_window)
+    df_resampled = df.resample(resolution).mean()
+    p_tot = df_resampled.sum()
+    p_standby = p_sb.sum()
+    share_standby = p_standby/p_tot
+    return share_standby.iloc[0]
+
+
 def count_peaks(ts):
     """
     Toggle counter for gas boilers
