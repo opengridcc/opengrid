@@ -5,10 +5,7 @@ Created on Mon Dec 30 02:37:25 2013
 @author: Jan
 """
 
-import matplotlib
 import unittest
-
-matplotlib.use('Agg')
 
 
 class PlotStyleTest(unittest.TestCase):
