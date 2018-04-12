@@ -53,6 +53,17 @@ class AnalysisTest(unittest.TestCase):
         count = og.analysis.count_peaks(ts)
         self.assertEqual(count, 13)
 
+    def test_load_factor(self):
+        ts = og.datasets.get('electricity_2016_hour')
+        ts = ts['e1de'].truncate(after=pd.Timestamp('20160107'))
+        lf1 = og.analysis.load_factor(ts)
+        self.assertIsInstance(ts, pd.Series)
+        self.assertAlmostEqual(ts.iloc[0], (lf1 * ts.max()).iloc[0])
+
+        lf2 = og.analysis.load_factor(ts, resolution='3h', norm=800)
+        self.assertIsInstance(ts, pd.Series)
+        self.assertAlmostEqual(175.0345212009457, (lf2 * 800).iloc[0])
+
 
 if __name__ == '__main__':
     unittest.main()
