@@ -145,24 +145,22 @@ def boxplot(df, plot_mean=False, plot_ids=None):
     # plot
     plt = plot_style()
 
-    df.index = df.index.map(lambda x: x.strftime('%b'))
-
     df = df.T
 
-    fig, ax = plt.subplots()
-    axes, bp = df.boxplot(ax=ax, return_type='both')
+    axes, bp = df.boxplot(return_type='both')
     plt.setp(bp['boxes'], color='black')
     plt.setp(bp['whiskers'], color='black')
 
     for id in plot_ids:
-        ax.scatter(x=axes.get_xticks(), y=df.loc[id], label=str(id))
+        if id in df.index:
+            plt.scatter(x=axes.get_xticks(), y=df.loc[id], label=str(id))
 
     if plot_mean:
-        ax.scatter(x=axes.get_xticks(), y=description['mean'], label="Mean", color='k', s=30, marker='+')
+        plt.scatter(x=axes.get_xticks(), y=description['mean'], label="Mean", color='k', s=30, marker='+')
 
     plt.xticks(rotation=45)
 
-    ax.legend()
+    plt.legend()
 
-    return fig
+    return plt.gcf()
 
