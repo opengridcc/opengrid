@@ -2,6 +2,7 @@ import os
 import matplotlib.pyplot as plt
 import matplotlib
 import pandas as pd
+import numpy as np
 import matplotlib.cm as cm
 from matplotlib.dates import date2num, num2date, HourLocator, DayLocator, AutoDateLocator, DateFormatter
 from matplotlib.colors import LogNorm
@@ -121,46 +122,54 @@ def carpet(timeseries, **kwargs):
     return im
 
 
-def boxplot(df, plot_mean=False, plot_ids=None):
+def boxplot(df, plot_mean=False, plot_ids=None, title=None, xlabel=None, ylabel=None):
     """
-        Plot boxplots
+    Plot boxplots
 
-        Plot the boxplots of a dataframe in time
+    Plot the boxplots of a dataframe in time
 
-        Parameters
-        ----------
-        df: Pandas Dataframe
-            Every collumn is a timeseries
-        plot_mean: bool
-            Wether or not to plot the means
-        plot_ids: [str]
-            List of id's to plot
+    Parameters
+    ----------
+    df: Pandas Dataframe
+        Every collumn is a timeseries
+    plot_mean: bool
+        Wether or not to plot the means
+    plot_ids: [str]
+        List of id's to plot
 
-        Returns
-        -------
-        matplotlib figure
-        """
+    Returns
+    -------
+    matplotlib figure
+    """
+
+    df = df.applymap(float)
     description = df.apply(pd.DataFrame.describe, axis=1)
 
     # plot
     plt = plot_style()
 
-    df = df.T
-
-    axes, bp = df.boxplot(return_type='both')
-    plt.setp(bp['boxes'], color='black')
-    plt.setp(bp['whiskers'], color='black')
-
-    for id in plot_ids:
-        if id in df.index:
-            plt.scatter(x=axes.get_xticks(), y=df.loc[id], label=str(id))
+    plt.boxplot(df)
+    #plt.setp(bp['boxes'], color='black')
+    #plt.setp(bp['whiskers'], color='black')
+    if plot_ids is not None:
+        for id in plot_ids:
+            if id in df.columns:
+                plt.scatter(x=range(1, len(df) + 1), y=df[id], label=str(id))
 
     if plot_mean:
-        plt.scatter(x=axes.get_xticks(), y=description['mean'], label="Mean", color='k', s=30, marker='+')
+        plt.scatter(x=range(1, len(df) + 1), y=description['mean'], label="Mean", color='k', s=30, marker='+')
 
-    plt.xticks(rotation=45)
+    ax = plt.gca()
+    ax.set_xticklabels(df.index)
+    #plt.xticks(rotation=45)
 
     plt.legend()
+    if title is not None:
+        plt.title(title)
+    if xlabel is not None:
+        plt.xlabel(xlabel)
+    if ylabel is not None:
+        plt.ylabel(ylabel)
 
     return plt.gcf()
 
