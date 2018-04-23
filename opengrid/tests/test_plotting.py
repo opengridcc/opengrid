@@ -6,12 +6,24 @@ Created on Mon Dec 30 02:37:25 2013
 """
 
 import unittest
+import pandas as pd
+from opengrid.library import plotting
 
 
-class AnalysisTest(unittest.TestCase):
-    def test_plotting(self):
-        from opengrid.library.plotting import plot_style
-        plt = plot_style()
+class PlotStyleTest(unittest.TestCase):
+    def test_default(self):
+        plt = plotting.plot_style()
+
+
+class CarpetTest(unittest.TestCase):
+    def test_default(self):
+        import numpy as np
+        index = pd.date_range('2015-1-1', '2015-12-31', freq='h')
+        ser = pd.Series(np.random.normal(size=len(index)), index=index, name='abc')
+        assert plotting.carpet(ser) is not None
+
+    def test_empty(self):
+        assert plotting.carpet(pd.Series(index=list('abc'))) is None
 
 
 if __name__ == '__main__':

@@ -14,6 +14,7 @@ before_install:
 - chmod +x miniconda.sh
 - "./miniconda.sh -b -p /home/travis/mc"
 - export PATH=/home/travis/mc/bin:$PATH
+- export MPLBACKEND='Agg'
 install:
 - conda update --yes conda
 - conda config --add channels soft-matter
