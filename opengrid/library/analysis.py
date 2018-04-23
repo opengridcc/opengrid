@@ -105,3 +105,33 @@ def count_peaks(ts):
     result = on_toggles & shifted
     count = result.sum()
     return count
+
+
+def load_factor(ts, resolution=None, norm=None):
+    """
+    Calculate the ratio of input vs. norm over a given interval.
+
+    Parameters
+    ----------
+    ts : pandas.Series
+        timeseries
+    resolution : str, optional
+        interval over which to calculate the ratio
+        default: resolution of the input timeseries
+    norm : int | float, optional
+        denominator of the ratio
+        default: the maximum of the input timeseries
+
+    Returns
+    -------
+    pandas.Series
+    """
+    if norm is None:
+        norm = ts.max()
+
+    if resolution is not None:
+        ts = ts.resample(rule=resolution).mean()
+
+    lf = ts / norm
+
+    return lf
