@@ -34,6 +34,14 @@ class BoxplotTest(unittest.TestCase):
         df = pd.DataFrame(index=index, data=np.random.randint(5, size=(len(index),20)))
         plotting.boxplot(df)
 
+    def test_arguments(self):
+        import numpy as np
+        import pandas as pd
+        from opengrid.library import plotting
+        index = pd.date_range('2015-1-1', '2015-2-1', freq='d')
+        df = pd.DataFrame(index=index, data=np.random.randint(5, size=(len(index),20)))
+        plotting.boxplot(df, plot_mean=True, plot_ids=[2, 3], title="Title", xlabel="xlable", ylabel="ylable")
+
 
 if __name__ == '__main__':
     unittest.main()
