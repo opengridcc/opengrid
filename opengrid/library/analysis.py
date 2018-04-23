@@ -172,7 +172,7 @@ def load_factor(ts, resolution=None, norm=None):
 
     Parameters
     ----------
-    ts : Pandas Series
+    ts : pandas.Series
         timeseries
     resolution : str, optional
         interval over which to calculate the ratio
@@ -183,7 +183,7 @@ def load_factor(ts, resolution=None, norm=None):
 
     Returns
     -------
-    Pandas Series
+    pandas.Series
     """
     if norm is None:
         norm = ts.max()
@@ -191,6 +191,6 @@ def load_factor(ts, resolution=None, norm=None):
     if resolution is not None:
         ts = ts.resample(rule=resolution).mean()
 
-    lf = ts/norm
+    lf = ts / norm
 
     return lf
