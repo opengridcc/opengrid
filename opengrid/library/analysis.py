@@ -75,7 +75,7 @@ def standby(df, resolution='24h', time_window=None):
 
     Parameters
     ----------
-    df : Pandas DataFrame
+    df : pandas.DataFrame or pandas.Series
         Electricity Power
     resolution : str, default='d'
         Resolution of the computation.  Data will be resampled to this resolution (as mean) before computation
@@ -91,6 +91,7 @@ def standby(df, resolution='24h', time_window=None):
     df : pandas.Series with DateTimeIndex in the given resolution
     """
 
+    df = pd.DataFrame(df)  # if df was a pd.Series, convert to DataFrame
     def parse_time(t):
         if isinstance(t, numbers.Number):
             return pd.Timestamp.utcfromtimestamp(t).time()
@@ -118,7 +119,7 @@ def share_of_standby(df, resolution='24h', time_window=None):
 
     Parameters
     ----------
-    df : Pandas DataFrame
+    df : pandas.DataFrame or pandas.Series
         Power (typically electricity, can be anything)
     resolution : str, default='d'
         Resolution of the computation.  Data will be resampled to this resolution (as mean) before computation
@@ -134,13 +135,13 @@ def share_of_standby(df, resolution='24h', time_window=None):
     fraction : float between 0-1 with the share of the standby consumption
     """
 
-    df_ = pd.DataFrame(df)
-    p_sb = standby(df_, resolution, time_window)
-    df_resampled = df_.resample(resolution).mean()
-    p_tot = df_resampled.sum()
+    p_sb = standby(df, resolution, time_window)
+    df = df.resample(resolution).mean()
+    p_tot = df.sum()
     p_standby = p_sb.sum()
-    share_standby = p_standby/p_tot
-    return share_standby.iloc[0]
+    share_standby = p_standby / p_tot
+    res = share_standby.iloc[0]
+    return res
 
 
 def count_peaks(ts):
