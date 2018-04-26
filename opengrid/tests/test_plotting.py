@@ -7,6 +7,7 @@ Created on Mon Dec 30 02:37:25 2013
 
 import unittest
 import pandas as pd
+import opengrid as og
 from opengrid.library import plotting
 
 
@@ -24,6 +25,13 @@ class CarpetTest(unittest.TestCase):
 
     def test_empty(self):
         assert plotting.carpet(pd.Series(index=list('abc'))) is None
+
+
+class LoadDurationCurveTest(unittest.TestCase):
+    def test_default(self):
+        df = og.datasets.get('gas_2016_hour')
+        assert og.plotting.load_duration_curve(df) is not None
+        assert og.plotting.load_duration_curve(df, trim_zeros=True) is not None
 
 
 if __name__ == '__main__':

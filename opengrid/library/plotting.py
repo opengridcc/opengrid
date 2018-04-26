@@ -114,3 +114,27 @@ def carpet(timeseries, **kwargs):
     plt.title(title)
 
     return im
+
+
+def load_duration_curve(df, trim_zeros=False, **kwargs):
+    """
+    Plot a load duration curve
+
+    Parameters
+    ----------
+    df : pd.DataFrame or pd.Series
+    trim_zeros : bool
+        trim trailing zero's
+    kwargs : anything you would pass to pd.DataFrame.plot()`
+
+    Returns
+    -------
+`   matplotlib plot
+    """
+    df = pd.DataFrame(df)  # in case a series is passed, wrap it in a dataframe
+    load_factors = (df[column].reset_index(drop=True).sort_values(ascending=False).reset_index(drop=True) for column in df)
+    if trim_zeros:
+        load_factors = (np.trim_zeros(s, trim='b') for s in load_factors)
+    df = pd.concat(load_factors, axis=1)
+    fig = df.plot(**kwargs)
+    return fig
