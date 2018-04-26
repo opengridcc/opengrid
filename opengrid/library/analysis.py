@@ -91,6 +91,9 @@ def standby(df, resolution='24h', time_window=None):
     df : pandas.Series with DateTimeIndex in the given resolution
     """
 
+    if df.empty:
+        raise EmptyDataFrame()
+
     df = pd.DataFrame(df)  # if df was a pd.Series, convert to DataFrame
     def parse_time(t):
         if isinstance(t, numbers.Number):
@@ -98,8 +101,7 @@ def standby(df, resolution='24h', time_window=None):
         else:
             return pd.Timestamp(t).time()
 
-    if df.empty:
-        raise EmptyDataFrame()
+
     # first filter based on the time-window
     if time_window is not None:
         t_start = parse_time(time_window[0])
