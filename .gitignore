@@ -6,3 +6,4 @@ opengrid/notebooks/index.html
 dist/
 build/
 opengrid.egg-info/
+.DS_Store
