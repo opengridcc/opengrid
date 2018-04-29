@@ -44,12 +44,5 @@ class BoxplotTest(unittest.TestCase):
         plotting.boxplot(df, plot_mean=True, plot_ids=[2, 3], title="Title", xlabel="xlable", ylabel="ylable")
 
 
-class LoadDurationCurveTest(unittest.TestCase):
-    def test_default(self):
-        df = og.datasets.get('gas_2016_hour')
-        assert og.plotting.load_duration_curve(df) is not None
-        assert og.plotting.load_duration_curve(df, trim_zeros=True) is not None
-
-
 if __name__ == '__main__':
     unittest.main()
