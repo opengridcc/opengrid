@@ -11,6 +11,7 @@ import pandas as pd
 import numpy as np
 import numbers
 from opengrid.library.exceptions import EmptyDataFrame
+from collections import namedtuple
 
 
 class Analysis(object):
@@ -221,3 +222,41 @@ def load_duration(df, trim_zeros=False):
     df = pd.concat(load_durations, axis=1)
     result = df.squeeze()
     return result
+
+
+def modulation_detection(ts, min_level=0.1):
+    """
+    Detect the modulation levels of a gas boiler
+
+    Parameters
+    ----------
+    ts : pd.Series
+    min_level : float
+        Physically, a gas boiler cannot modulate under a certain percentage of its maximum power
+        So we use this percentage to cut off any noise
+
+    Returns
+    -------
+    namedtuple(median, minimum)
+    """
+    # drop all values below the minimum level
+    ts = ts[ts >= (ts.max() * min_level)]
+
+    # load duration curve
+    ld = load_duration(ts, trim_zeros=True)
+
+    # find the part in the load duration curve with the highest number of consecutive identical values
+    # a.k.a. find the longest 'flat part' in the curve
+    median_modul = ld.round().groupby(ld.round()).size().sort_values(ascending=False).index[0]
+
+    # take the second derivative of the whatever happens after the flat part
+    dif2 = ld[ld < median_modul].diff().diff().shift(-2)
+    # find the maximum in this second derivative
+    # this is where the curve 'drops off'
+    min_modul_ix = dif2.sort_values(ascending=False).index[0]
+    min_modul = ld[min_modul_ix]
+
+    # return as a namedtuple
+    ModulationLevel = namedtuple('ModulationLevel', ['median', 'minimum'])
+    ml = ModulationLevel(median_modul, min_modul)
+    return ml
