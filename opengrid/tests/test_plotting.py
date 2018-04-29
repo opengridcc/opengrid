@@ -7,7 +7,6 @@ Created on Mon Dec 30 02:37:25 2013
 
 import unittest
 import pandas as pd
-import opengrid as og
 from opengrid.library import plotting
 
 
