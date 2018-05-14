@@ -30,8 +30,8 @@ class MultiVarLinReg(Analysis):
 
     The analysis is based on a forward-selection approach: starting from a simple model, the model is iteratively
     refined and verified until no statistical relevant improvements can be obtained.  Each model in the iteration loop
-    is stored in the attribute self.list_of_fits.  The selected model is self.fit (=pointer to the last element of
-    self.list_of_fits).
+    is stored in the attribute self._list_of_fits.  The selected model is self._fit (=pointer to the last element of
+    self._list_of_fits).
 
     The dataframe can contain daily, weekly, monthly, yearly ... values.  Each row is an instance.
 
@@ -45,15 +45,16 @@ class MultiVarLinReg(Analysis):
 
     """
 
-    def __init__(self, df, y, **kwargs):
+    def __init__(self, df, y, p_max=0.05, list_of_x=None, confint=0.95, cross_validation=False,
+                 allow_negative_predictions=False):
         """
 
         Parameters
         ----------
         df : pd.DataFrame
-            Datetimeindex and both endogenous and exogenous variables as columns
+            Datetimeindex and both independent variables (x) and dependent variable (y) as columns
         y : str
-            Name of the endogeneous variable to model
+            Name of the dependent (endogeneous) variable to model
         p_max : float (default=0.05)
             Acceptable p-value of the t-statistic for estimated parameters
         list_of_x : list of str (default=None)
@@ -73,21 +74,38 @@ class MultiVarLinReg(Analysis):
         assert y in self.df.columns, "The dependent variable {} is not a column in the dataframe".format(y)
         self.y = y
 
-        self.p_max = kwargs.get('p_max', 0.05)
-        self.list_of_x = kwargs.get('list_of_x', self.df.columns.tolist())
-        self.confint = kwargs.get('confint', 0.95)
-        self.cross_validation = kwargs.get('cross_validation', False)
-        self.allow_negative_predictions = kwargs.get('allow_negative_predictions', False)
+        self.p_max = p_max
+        self.list_of_x = list_of_x or self.df.columns.tolist()
+        self.confint = confint
+        self.cross_validation = cross_validation
+        self.allow_negative_predictions = allow_negative_predictions
         try:
             self.list_of_x.remove(self.y)
         except ValueError:
             pass
+        self._fit = None
+        self._list_of_fits = []
 
-        #self.do_analysis()
+
+    @property
+    def fit(self):
+        if self._fit is None:
+            raise UnboundLocalError('Run "do_analysis()" first to fit a model to the data.')
+        else:
+            return self._fit
+
+
+    @property
+    def list_of_fits(self):
+        if not self._list_of_fits:
+            raise UnboundLocalError('Run "do_analysis()" first to fit a model to the data.')
+        else:
+            return self._list_of_fits
+
 
     def do_analysis(self):
         """
-        Find the best model (fit) and create self.list_of_fits and self.fit
+        Find the best model (fit) and create self._list_of_fits and self._fit
 
         """
         if self.cross_validation:
@@ -97,10 +115,9 @@ class MultiVarLinReg(Analysis):
 
     def _do_analysis_no_cross_validation(self):
         """
-        Find the best model (fit) and create self.list_of_fits and self.fit
+        Find the best model (fit) and create self._list_of_fits and self._fit
         """
 
-        self.list_of_fits = []
         # first model is just the mean
         response_term = [Term([LookupFactor(self.y)])]
         model_terms = [Term([])] # empty term is the intercept
@@ -108,14 +125,14 @@ class MultiVarLinReg(Analysis):
         # ...then add another term for each candidate
         #model_terms += [Term([LookupFactor(c)]) for c in candidates]
         model_desc = ModelDesc(response_term, model_terms)
-        self.list_of_fits.append(fm.ols(model_desc, data=self.df).fit())
+        self._list_of_fits.append(fm.ols(model_desc, data=self.df).fit())
         # try to improve the model until no improvements can be found
 
         while all_model_terms_dict:
             # try each x and overwrite the best_fit if we find a better one
             # the first best_fit is the one from the previous round
-            ref_fit = self.list_of_fits[-1]
-            best_fit = self.list_of_fits[-1]
+            ref_fit = self._list_of_fits[-1]
+            best_fit = self._list_of_fits[-1]
             best_bic = best_fit.bic
             for x, term in all_model_terms_dict.items():
                 # make new_fit, compare with best found so far
@@ -133,9 +150,9 @@ class MultiVarLinReg(Analysis):
             if len(best_fit.model.formula.rhs_termlist) == len(ref_fit.model.formula.rhs_termlist):
                 break
             else:
-                self.list_of_fits.append(best_fit)
+                self._list_of_fits.append(best_fit)
                 all_model_terms_dict.pop(best_x)
-        self.fit = self.list_of_fits[-1]
+        self._fit = self._list_of_fits[-1]
 
     def _do_analysis_cross_validation(self):
         """
@@ -156,7 +173,7 @@ class MultiVarLinReg(Analysis):
             cross_prediction = self._predict(fit=fit, df=self.df.loc[[i], :])
             errors.append(cross_prediction['predicted'] - cross_prediction[self.y])
 
-        self.list_of_fits = [fm.ols(model_desc, data=self.df).fit()]
+        self._list_of_fits = [fm.ols(model_desc, data=self.df).fit()]
         self.list_of_cverrors = [np.mean(np.abs(np.array(errors)))]
 
         # try to improve the model until no improvements can be found
@@ -166,9 +183,9 @@ class MultiVarLinReg(Analysis):
             # try each x in all_exog and overwrite if we find a better one
             # at the end of iteration (and not earlier), save the best of the iteration
             better_model_found = False
-            best = dict(fit=self.list_of_fits[-1], cverror=self.list_of_cverrors[-1])
+            best = dict(fit=self._list_of_fits[-1], cverror=self.list_of_cverrors[-1])
             for x, term in all_model_terms_dict.items():
-                model_desc = ModelDesc(response_term, self.list_of_fits[-1].model.formula.rhs_termlist + [term])
+                model_desc = ModelDesc(response_term, self._list_of_fits[-1].model.formula.rhs_termlist + [term])
                 # cross_validation, currently only implemented for monthly data
                 # compute the mean error for a given formula based on leave-one-out.
                 errors = []
@@ -189,7 +206,7 @@ class MultiVarLinReg(Analysis):
                     best_x = x
 
             if better_model_found:
-                self.list_of_fits.append(best['fit'])
+                self._list_of_fits.append(best['fit'])
                 self.list_of_cverrors.append(best['cverror'])
 
             else:
@@ -199,7 +216,7 @@ class MultiVarLinReg(Analysis):
             # next iteration with the found exog removed
             all_model_terms_dict.pop(best_x)
 
-        self.fit = self.list_of_fits[-1]
+        self._fit = self._list_of_fits[-1]
 
 
     def _prune(self, fit, p_max):
@@ -339,13 +356,13 @@ class MultiVarLinReg(Analysis):
         -------
         Nothing, adds columns to self.df
         """
-        self.df = self._predict(fit=self.fit, df=self.df)
+        self.df = self._predict(fit=self._fit, df=self.df)
 
     def plot(self, model=True, bar_chart=True, **kwargs):
         """
         Plot measurements and predictions.
 
-        By default, use self.fit and self.df, but both can be overruled by the arguments df and fit
+        By default, use self._fit and self.df, but both can be overruled by the arguments df and fit
         This function will detect if the data has been used for the modelling or not and will
         visualize them differently.
 
@@ -362,7 +379,7 @@ class MultiVarLinReg(Analysis):
             The data to be plotted.  If None, use self.df
             If the dataframe does not have a column 'predicted', a prediction will be made
         fit : statsmodels fit, default=None
-            The model to be used.  if None, use self.fit
+            The model to be used.  if None, use self._fit
 
         Returns
         -------
@@ -371,7 +388,7 @@ class MultiVarLinReg(Analysis):
         """
         plot_style()
         figures = []
-        fit = kwargs.get('fit', self.fit)
+        fit = kwargs.get('fit', self._fit)
         df = kwargs.get('df', self.df)
 
         if not 'predicted' in df.columns:
@@ -394,7 +411,7 @@ class MultiVarLinReg(Analysis):
             # get sorted model values
             dfmodel = df[[exog1, 'predicted', 'interval_u', 'interval_l']]
             dfmodel.index = dfmodel[exog1]
-            dfmodel.sort_index(inplace=True)
+            dfmodel = dfmodel.sort_index()
             plt.plot(dfmodel.index, dfmodel['predicted'], '--', color='royalblue')
             plt.plot(dfmodel.index, dfmodel['interval_l'], ':', color='royalblue')
             plt.plot(dfmodel.index, dfmodel['interval_u'], ':', color='royalblue')
@@ -482,7 +499,7 @@ class MultiVarLinReg(Analysis):
         """
         d = self.__dict__
         d['formulas'] = []
-        for fit in self.list_of_fits:
+        for fit in self._list_of_fits:
                 d['formulas'].append(self._modeldesc_to_dict(fit.model.formula))
                 #delattr(fit.model, 'formula')
         d.pop('list_of_fits')
@@ -497,8 +514,8 @@ class MultiVarLinReg(Analysis):
         for k,v in state.items():
             if k is not 'formulas':
                 setattr(self, k, v)
-        self.list_of_fits = []
+        self._list_of_fits = []
         for formula in state['formulas']:
-            self.list_of_fits.append(fm.ols(self._modeldesc_from_dict(formula), data=self.df).fit())
-        self.fit = self.list_of_fits[-1]
+            self._list_of_fits.append(fm.ols(self._modeldesc_from_dict(formula), data=self.df).fit())
+        self._fit = self._list_of_fits[-1]
 
