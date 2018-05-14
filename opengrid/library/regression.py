@@ -502,8 +502,8 @@ class MultiVarLinReg(Analysis):
         for fit in self._list_of_fits:
                 d['formulas'].append(self._modeldesc_to_dict(fit.model.formula))
                 #delattr(fit.model, 'formula')
-        d.pop('list_of_fits')
-        d.pop('fit')
+        d.pop('_list_of_fits')
+        d.pop('_fit')
         
         print("Pickling...  Removing the 'formula' from each fit.model.\n\
              You have to unpickle your object or run __setstate__(self.__dict__) to restore them.".format(d))
