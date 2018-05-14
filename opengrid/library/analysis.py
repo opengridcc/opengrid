@@ -69,6 +69,35 @@ class DailyAgg(Analysis):
             self.result = pd.DataFrame()
 
 
+def threshold_detection(ts, threshold, direction='above', freq=None):
+    """
+    Describe timeseries in regards to a specified threshold
+
+    :param ts: Pandas Series
+    :param threshold: number
+    :param direction: string (above or below)
+    :param freq: string
+    :return: dict
+    """
+    if freq is not None:
+        ts = ts.resample(freq).sum()
+
+    if direction == 'above':
+        thresh_ts = ts > threshold
+    if direction == 'below':
+        thresh_ts = ts < threshold
+
+    duration = len(ts[thresh_ts])
+    amount = (ts[thresh_ts] - threshold).sum()
+
+    on_toggles = thresh_ts
+    shifted = np.logical_not(on_toggles.shift(1))
+    result = on_toggles & shifted
+    count = result.sum()
+
+    return dict([('Total_amount', amount), ('Total_duration', duration), ('count', count)])
+
+
 def standby(df, resolution='24h', time_window=None):
     """
     Compute standby power
