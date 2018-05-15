@@ -29,12 +29,17 @@ class RegressionTest(unittest.TestCase):
         mvlr.do_analysis()
         self.assertTrue(hasattr(mvlr, 'list_of_fits'))
 
-    # def test_raises(self):
-    #     df = datasets.get('gas_2016_hour')
-    #     df_month = df.resample('MS').sum()
-    #     mvlr = og.MultiVarLinReg(df_month, '313b', p_max=0.04)
-    #     self.assertRaises(UnboundLocalError, mvlr.fit)
-    #     self.assertRaises(UnboundLocalError, mvlr.list_of_fits)
+    def test_raises(self):
+        df = datasets.get('gas_2016_hour')
+        df_month = df.resample('MS').sum()
+        mvlr = og.MultiVarLinReg(df_month, '313b', p_max=0.04)
+        self.assertRaises(UnboundLocalError, mvlr.add_prediction)
+        try:
+            x = mvlr.list_of_fits
+            self.assertTrue(False)
+        except UnboundLocalError:
+            self.assertTrue(True)
+
 
     def test_strange_names(self):
         df = datasets.get('gas_2016_hour')

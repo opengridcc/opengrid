@@ -30,8 +30,8 @@ class MultiVarLinReg(Analysis):
 
     The analysis is based on a forward-selection approach: starting from a simple model, the model is iteratively
     refined and verified until no statistical relevant improvements can be obtained.  Each model in the iteration loop
-    is stored in the attribute self._list_of_fits.  The selected model is self._fit (=pointer to the last element of
-    self._list_of_fits).
+    is stored in the attribute self.list_of_fits.  The selected model is self.fit (=pointer to the last element of
+    self.list_of_fits).
 
     The dataframe can contain daily, weekly, monthly, yearly ... values.  Each row is an instance.
 
@@ -105,7 +105,7 @@ class MultiVarLinReg(Analysis):
 
     def do_analysis(self):
         """
-        Find the best model (fit) and create self._list_of_fits and self._fit
+        Find the best model (fit) and create self.list_of_fits and self.fit
 
         """
         if self.cross_validation:
@@ -115,7 +115,7 @@ class MultiVarLinReg(Analysis):
 
     def _do_analysis_no_cross_validation(self):
         """
-        Find the best model (fit) and create self._list_of_fits and self._fit
+        Find the best model (fit) and create self.list_of_fits and self.fit
         """
 
         # first model is just the mean
@@ -356,7 +356,7 @@ class MultiVarLinReg(Analysis):
         -------
         Nothing, adds columns to self.df
         """
-        self.df = self._predict(fit=self._fit, df=self.df)
+        self.df = self._predict(fit=self.fit, df=self.df)
 
     def plot(self, model=True, bar_chart=True, **kwargs):
         """
@@ -388,7 +388,7 @@ class MultiVarLinReg(Analysis):
         """
         plot_style()
         figures = []
-        fit = kwargs.get('fit', self._fit)
+        fit = kwargs.get('fit', self.fit)
         df = kwargs.get('df', self.df)
 
         if not 'predicted' in df.columns:
