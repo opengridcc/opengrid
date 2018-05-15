@@ -84,8 +84,10 @@ def threshold_detection(ts, threshold, direction='above', freq=None):
 
     if direction == 'above':
         thresh_ts = ts > threshold
-    if direction == 'below':
+    elif direction == 'below':
         thresh_ts = ts < threshold
+    else:
+        raise ValueError("direction can only be 'above' or 'below'.")
 
     duration = len(ts[thresh_ts])
     amount = (ts[thresh_ts] - threshold).sum()
