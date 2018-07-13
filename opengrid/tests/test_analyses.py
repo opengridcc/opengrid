@@ -64,6 +64,13 @@ class AnalysisTest(unittest.TestCase):
         self.assertIsInstance(ts, pd.Series)
         self.assertAlmostEqual(175.0345212009457, (lf2 * 800).iloc[0])
 
+    def test_load_duration(self):
+        ts = pd.Series([1, 5, 7, 0, 6, 0, 3, 2])
+        ld = og.analysis.load_duration(ts)
+        self.assertTrue(ld.equals(pd.Series([7, 6, 5, 3, 2, 1, 0, 0])))
+        ld2 = og.analysis.load_duration(ts, trim_zeros=True)
+        self.assertTrue(ld2.equals(pd.Series([7, 6, 5, 3, 2, 1])))
+
 
 if __name__ == '__main__':
     unittest.main()

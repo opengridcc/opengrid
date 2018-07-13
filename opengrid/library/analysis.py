@@ -197,3 +197,27 @@ def load_factor(ts, resolution=None, norm=None):
     lf = ts / norm
 
     return lf
+
+
+def load_duration(df, trim_zeros=False):
+    """
+    Create descending load duration series
+    (mainly for use in a load duration curve)
+
+    Parameters
+    ----------
+    df : pd.DataFrame or pd.Series
+    trim_zeros : bool
+        trim trailing zero's
+
+    Returns
+    -------
+    pd.DataFrame or pd.Series
+    """
+    df = pd.DataFrame(df)  # in case a series is passed, wrap it in a dataframe
+    load_durations = (df[column].reset_index(drop=True).sort_values(ascending=False).reset_index(drop=True) for column in df)
+    if trim_zeros:
+        load_durations = (np.trim_zeros(s, trim='b') for s in load_durations)
+    df = pd.concat(load_durations, axis=1)
+    result = df.squeeze()
+    return result
