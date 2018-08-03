@@ -64,6 +64,20 @@ class AnalysisTest(unittest.TestCase):
         self.assertIsInstance(ts, pd.Series)
         self.assertAlmostEqual(175.0345212009457, (lf2 * 800).iloc[0])
 
+    def test_threshold_detection(self):
+        df = datasets.get('gas_dec2016_min')
+        df = df['313b']
+
+        ts = df.squeeze()
+
+        threshold = 25000
+        freq = 'min'
+
+        result = og.analysis.threshold_detection(ts, threshold, freq=freq)
+
+        self.assertEqual(result['count'], 19)
+        self.assertEqual(result['Total_duration'], 22)
+        self.assertAlmostEqual(result['Total_amount'], 24335.314876027405)
 
 if __name__ == '__main__':
     unittest.main()
