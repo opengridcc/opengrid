@@ -1,10 +1,7 @@
 import os
-import os
 import numpy as np
 import pandas as pd
 import matplotlib
-import pandas as pd
-import numpy as np
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 from matplotlib.dates import date2num, num2date, HourLocator, DayLocator, AutoDateLocator, DateFormatter
@@ -124,7 +121,6 @@ def carpet(timeseries, **kwargs):
 
     return im
 
-
 def boxplot(df, plot_mean=False, plot_ids=None, title=None, xlabel=None, ylabel=None):
     """
     Plot boxplots
@@ -175,4 +171,3 @@ def boxplot(df, plot_mean=False, plot_ids=None, title=None, xlabel=None, ylabel=
         plt.ylabel(ylabel)
 
     return plt.gcf()
-
