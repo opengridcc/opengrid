@@ -12,13 +12,13 @@ install:
 script: nose2
 after_success:
 - coveralls
-# deploy:
-#   provider: pypi
-#   distributions: "sdist bdist_wheel"
-#   user: saroele
-#   password:
-#     secure: "a1ygtFztpFr3TQ3GC6XxKA9D4ktGQjfWb6C952UB9EAKPdDJZMxscMo1sfSXlSaF0DgshOU++6+H3Td3zD+vSbuI0vuK3Is6GRzvjYnXsqnP/PRJy2fWJ1ROAhxr21XCFHjbpNfaW5mFmRU4HDNXKOeMQhx7U2bSLEJXDlJ0leYfBvqVMXTRbA0gOdq03rVy2QT4k5cBL5NVJZIfWKyhtBp911xbMfds9/yZ6oqHCoOiKtq2RbLNEWiK6ICk8iTd/npYJEV0e38woIbnB8GsS9Mehc4ji9AjrUQ2kwIERxVG+UkFyM+i0/cUGl86X9+iBCHxFJWSDFpgNHNjvTasYCiHZL++XQQQG+lMBkYvSxfLEdP2lTO+KrwsLs7ECJvFOK8F/F8y9MpFsdYt3XuehFo+m9eWXAPVmVtcCWV0RJmaESP8LWxz0ky5SGtuL3+8ldM+sbFI32YPYfJ9SL028J2uoR6waWzBLnDBKhhn0GC9InGWKzj33/AUiZ6yQU1X86ldOdeJah+SseJXhiCx86sUlnZnEuaiEYb7/tZ6j4j9mEnzJaklm47eWVxIVdW04GfZvqayKc4DakfyWmyy13Felmh85FFvLK6/SjFP9+CX4AawI87SR56/Cgkex0Rwui0b0ejKiHCYfBg2eWjQToOyvghcDVwkwXV6WJDCMpA="
-#   on:
-#     tags: true
-#     branch: master
-#     python: 3.6
+deploy:
+  provider: pypi
+  distributions: "sdist bdist_wheel"
+  user: saroele
+  password:
+    secure: "a1ygtFztpFr3TQ3GC6XxKA9D4ktGQjfWb6C952UB9EAKPdDJZMxscMo1sfSXlSaF0DgshOU++6+H3Td3zD+vSbuI0vuK3Is6GRzvjYnXsqnP/PRJy2fWJ1ROAhxr21XCFHjbpNfaW5mFmRU4HDNXKOeMQhx7U2bSLEJXDlJ0leYfBvqVMXTRbA0gOdq03rVy2QT4k5cBL5NVJZIfWKyhtBp911xbMfds9/yZ6oqHCoOiKtq2RbLNEWiK6ICk8iTd/npYJEV0e38woIbnB8GsS9Mehc4ji9AjrUQ2kwIERxVG+UkFyM+i0/cUGl86X9+iBCHxFJWSDFpgNHNjvTasYCiHZL++XQQQG+lMBkYvSxfLEdP2lTO+KrwsLs7ECJvFOK8F/F8y9MpFsdYt3XuehFo+m9eWXAPVmVtcCWV0RJmaESP8LWxz0ky5SGtuL3+8ldM+sbFI32YPYfJ9SL028J2uoR6waWzBLnDBKhhn0GC9InGWKzj33/AUiZ6yQU1X86ldOdeJah+SseJXhiCx86sUlnZnEuaiEYb7/tZ6j4j9mEnzJaklm47eWVxIVdW04GfZvqayKc4DakfyWmyy13Felmh85FFvLK6/SjFP9+CX4AawI87SR56/Cgkex0Rwui0b0ejKiHCYfBg2eWjQToOyvghcDVwkwXV6WJDCMpA="
+  on:
+    tags: true
+    branch: master
+    python: 3.6
