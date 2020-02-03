@@ -18,14 +18,14 @@ before_install:
 install:
 - conda update --yes conda
 - conda config --add channels soft-matter
-- conda create -n testenv --yes $DEPS pip nose setuptools python=$TRAVIS_PYTHON_VERSION
+- conda create -n testenv --yes $DEPS pip nose2 setuptools python=$TRAVIS_PYTHON_VERSION
 - source activate testenv
 - echo $PATH
 - which python
 - conda info
 - conda list
 - python setup.py install
-script: nosetests --with-coverage
+script: nose2 --with-coverage
 after_success:
 - coveralls
 deploy:

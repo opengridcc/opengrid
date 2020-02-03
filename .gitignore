@@ -7,3 +7,4 @@ dist/
 build/
 opengrid.egg-info/
 .DS_Store
+.coverage

@@ -1,8 +1,6 @@
 [run]
 branch = True
-source = opengrid
-include = */opengrid/library/*
+source = opengrid/library
 omit =
-    */python?.?/*
-    */site-packages/nose/*
     *__init__*
+    setup.py
