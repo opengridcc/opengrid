@@ -1,10 +1,8 @@
 import os
-import os
-import numpy as np
-import pandas as pd
-import matplotlib
+import logging as lg
 import pandas as pd
 import numpy as np
+import matplotlib.style as style
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 from matplotlib.dates import date2num, num2date, HourLocator, DayLocator, AutoDateLocator, DateFormatter
@@ -17,9 +15,9 @@ def plot_style():
     if 'JPY_PARENT_PID' in os.environ:
         get_ipython().run_line_magic('matplotlib', 'inline')
 
-    matplotlib.style.use('seaborn-talk')
-    matplotlib.style.use('seaborn-whitegrid')
-    matplotlib.style.use('seaborn-deep')
+    style.use('seaborn-talk')
+    style.use('seaborn-whitegrid')
+    style.use('seaborn-deep')
 
     plt.rcParams['figure.figsize'] = 16, 6
 
@@ -72,7 +70,7 @@ def carpet(timeseries, **kwargs):
 
     # data preparation
     if timeseries.dropna().empty:
-        print('skipped {} - no data'.format(title))
+        lg.warning('skipped {} - no data'.format(title))
         return
     ts = timeseries.resample('15min').interpolate()
     vmin = max(0.1, kwargs.pop('vmin', ts[ts > 0].min()))

@@ -7,6 +7,7 @@ and return a dataframe or list of dataframes.
 """
 import datetime as dt
 import pandas as pd
+import logging as lg
 
 from .plotting import plot_style
 plt = plot_style()
@@ -504,8 +505,8 @@ class MultiVarLinReg(Analysis):
                 #delattr(fit.model, 'formula')
         d.pop('_list_of_fits')
         d.pop('_fit')
-        
-        print("Pickling...  Removing the 'formula' from each fit.model.\n\
+
+        lg.info("Pickling...  Removing the 'formula' from each fit.model.\n\
              You have to unpickle your object or run __setstate__(self.__dict__) to restore them.".format(d))
         return d
 
