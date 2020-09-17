@@ -14,4 +14,6 @@ install:
 script:
   - python3 -m pytest
 after_success:
+  - deactivate
+  - python3 -m pip install python-coveralls
   - coveralls
