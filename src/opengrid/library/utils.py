@@ -43,5 +43,5 @@ def week_schedule(index, on_time=None, off_time=None, off_days=None):
         on_time = pd.to_datetime(on_time, format='%H:%M').time()
     if not isinstance(off_time, datetime.time):
         off_time = pd.to_datetime(off_time, format='%H:%M').time()
-    times = (index.time >= on_time) & (index.time < off_time) & (~index.weekday_name.isin(off_days))
+    times = (index.time >= on_time) & (index.time < off_time) & (~index.day_name().isin(off_days))
     return pd.Series(times, index=index)
