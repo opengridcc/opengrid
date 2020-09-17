@@ -6,3 +6,4 @@ python-coveralls
 coverage
 statsmodels
 mock
+python3-venv

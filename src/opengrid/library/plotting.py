@@ -1,10 +1,7 @@
 import os
-import os
 import numpy as np
 import pandas as pd
 import matplotlib
-import pandas as pd
-import numpy as np
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 from matplotlib.dates import date2num, num2date, HourLocator, DayLocator, AutoDateLocator, DateFormatter
@@ -68,7 +65,8 @@ def carpet(timeseries, **kwargs):
     norm = kwargs.pop('norm', LogNorm())
     interpolation = kwargs.pop('interpolation', 'nearest')
     cblabel = kwargs.pop('zlabel', timeseries.name if timeseries.name else '')
-    title = kwargs.pop('title', 'carpet plot: ' + timeseries.name if timeseries.name else '')
+    title = kwargs.pop('title', 'carpet plot: ' +
+                       timeseries.name if timeseries.name else '')
 
     # data preparation
     if timeseries.dropna().empty:
@@ -90,7 +88,8 @@ def carpet(timeseries, **kwargs):
 
     fig, ax = plt.subplots()
     # define the extent of the axes (remark the +- 0.5  for the y axis in order to obtain aligned date ticks)
-    extent = [df.columns[0], df.columns[-1], df.index[-1] + 0.5, df.index[0] - 0.5]
+    extent = [df.columns[0], df.columns[-1],
+              df.index[-1] + 0.5, df.index[0] - 0.5]
     im = plt.imshow(df, vmin=vmin, vmax=vmax, extent=extent, cmap=cmap, aspect='auto', norm=norm,
                     interpolation=interpolation, **kwargs)
 
@@ -151,7 +150,7 @@ def boxplot(df, plot_mean=False, plot_ids=None, title=None, xlabel=None, ylabel=
     # plot
     plt = plot_style()
 
-    plt.boxplot(df)
+    plt.boxplot(x=df)
     #plt.setp(bp['boxes'], color='black')
     #plt.setp(bp['whiskers'], color='black')
     if plot_ids is not None:
@@ -160,11 +159,17 @@ def boxplot(df, plot_mean=False, plot_ids=None, title=None, xlabel=None, ylabel=
                 plt.scatter(x=range(1, len(df) + 1), y=df[id], label=str(id))
 
     if plot_mean:
-        plt.scatter(x=range(1, len(df) + 1), y=description['mean'], label="Mean", color='k', s=30, marker='+')
+        plt.scatter(x=range(1, len(df) + 1),
+                    y=description['mean'],
+                    label="Mean",
+                    color='k',
+                    s=30,
+                    marker='+')
 
     ax = plt.gca()
-    ax.set_xticklabels(df.index)
-    #plt.xticks(rotation=45)
+    print(ax.get_xticks(), ax.get_xticklabels())
+    ax.set_xticks(df.index)
+    # plt.xticks(rotation=45)
 
     plt.legend()
     if title is not None:
@@ -175,4 +180,3 @@ def boxplot(df, plot_mean=False, plot_ids=None, title=None, xlabel=None, ylabel=
         plt.ylabel(ylabel)
 
     return plt.gcf()
-

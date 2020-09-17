@@ -5,6 +5,7 @@ Created on Mon Dec 30 02:37:25 2013
 @author: Jan
 """
 
+from datetime import datetime as dt
 import unittest
 import numpy as np
 import pandas as pd
@@ -29,17 +30,20 @@ class CarpetTest(unittest.TestCase):
 
 class BoxplotTest(unittest.TestCase):
     def test_default(self):
-        index = pd.date_range('2015-1-1', '2015-2-1', freq='d')
-        df = pd.DataFrame(index=index, data=np.random.randint(
-            5, size=(len(index), 20)))
-        plotting.boxplot(df)
+        index = pd.date_range(start='2015-1-1', end='2015-2-1', freq='D')
+        dataframe = pd.DataFrame(index=index,
+                                 data=np.random.randint(low=5, size=(index.size, 20)))
+        print(dataframe.index)
+        plotting.boxplot(dataframe)
 
     def test_arguments(self):
-        index = pd.date_range('2015-1-1', '2015-2-1', freq='d')
-        df = pd.DataFrame(index=index, data=np.random.randint(
-            5, size=(len(index), 20)))
-        plotting.boxplot(df, plot_mean=True, plot_ids=[
-                         2, 3], title="Title", xlabel="xlable", ylabel="ylable")
+        index = pd.date_range(start='2015-1-1', end='2015-2-1', freq='D')
+        dataframe = pd.DataFrame(index=index,
+                                 data=np.random.randint(5, size=(index.size, 20)))
+        print(dataframe.index)
+        plotting.boxplot(dataframe,
+                         plot_mean=True,
+                         plot_ids=[2, 3], title="Title", xlabel="xlable", ylabel="ylable")
 
 
 if __name__ == '__main__':
