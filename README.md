@@ -1,5 +1,5 @@
 [![Build Status](https://travis-ci.org/EpoxyD/opengrid.svg?branch=master)](https://travis-ci.org/EpoxyD/opengrid)
-[![Coverage Status](https://coveralls.io/repos/github/EpoxyD/opengrid/badge.svg)](https://coveralls.io/github/EpoxyD/opengrid)
+[![Coverage Status](https://coveralls.io/repos/github/EpoxyD/opengrid/badge.svg?branch=master)](https://coveralls.io/github/EpoxyD/opengrid?branch=master)
 
 # opengrid
 
