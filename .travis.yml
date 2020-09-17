@@ -12,6 +12,6 @@ before_install:
 install:
   - python3 -m pip install .
 script:
-  - coverage run -m pytest
+  - python3 -m pytest
 after_success:
   - coveralls

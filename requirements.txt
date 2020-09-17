@@ -2,4 +2,3 @@ coveralls
 mock
 wheel
 pytest 
-pytest-cov
