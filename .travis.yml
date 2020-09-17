@@ -6,7 +6,9 @@ matrix:
     - python: "3.5"
     - python: "3.6"
 before_install:
-  - python3 -m pip install wheel pytest
+  - python3 -m venv venv
+  - source ./venv/bin/activate
+  - python3 -m pip install -r requirements.txt
 install:
   - python3 -m pip install .
 script:
