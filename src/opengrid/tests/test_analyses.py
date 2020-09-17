@@ -34,18 +34,17 @@ class AnalysisTest(unittest.TestCase):
         self.assertEqual(res.squeeze().to_json(), '{"1507327200000":61.739999936,"1507413600000":119.2800000636,"1507500000000":53.0399997951,"1507586400000":55.7399999164,"1507672800000":59.94000006,"1507759200000":69.4800002407,"1507845600000":56.8200000236,"1507932000000":54.1799997864,"1508018400000":54.779999801,"1508104800000":54.7199997772,"1508191200000":98.5199999576,"1508277600000":55.6799999066,"1508364000000":53.9399997052,"1508450400000":96.3000000408,"1508536800000":133.9200000744,"1508623200000":52.7999997279}')
 
     def test_share_of_standby_1(self):
-        df = pd.DataFrame(data={'conso':np.ones(48)},
-                          index=pd.DatetimeIndex(start=pd.Timestamp('20180304'), periods=48, freq='h'))
+        df = pd.DataFrame(data={'conso': np.ones(48)},
+                          index=pd.DatetimeIndex(pd.date_range(start=pd.Timestamp('20180304'), periods=48, freq='h')))
         share_of_standby = og.analysis.share_of_standby(df, resolution='24h')
         self.assertEqual(share_of_standby, 1.0)
 
     def test_share_of_standby_2(self):
-        df = pd.DataFrame(data={'conso':np.ones(48)},
-                          index=pd.DatetimeIndex(start=pd.Timestamp('20180304'), periods=48, freq='h'))
-        df.iloc[0,0] = 0
+        df = pd.DataFrame(data={'conso': np.ones(48)},
+                          index=pd.DatetimeIndex(pd.date_range(start=pd.Timestamp('20180304'), periods=48, freq='h')))
+        df.iloc[0, 0] = 0
         share_of_standby = og.analysis.share_of_standby(df, resolution='24h')
         self.assertAlmostEqual(share_of_standby, 0.5106382978723404)
-
 
     def test_count_peaks(self):
         df = datasets.get('gas_dec2016_min')
