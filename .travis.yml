@@ -3,38 +3,28 @@ sudo: false
 cache: pip
 matrix:
   include:
-  - python: '3.5'
-    env: DEPS="numpy scipy matplotlib pandas"
-  - python: '3.6'
-    env: DEPS="numpy scipy matplotlib pandas"
+    - python: "3.5"
+      env: DEPS="numpy scipy matplotlib pandas"
+    - python: "3.6"
+      env: DEPS="numpy scipy matplotlib pandas"
 before_install:
-- if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then wget http://repo.continuum.io/miniconda/Miniconda-3.5.5-Linux-x86_64.sh
-  -O miniconda.sh; else wget http://repo.continuum.io/miniconda/Miniconda3-3.5.5-Linux-x86_64.sh
-  -O miniconda.sh; fi
-- chmod +x miniconda.sh
-- "./miniconda.sh -b -p /home/travis/mc"
-- export PATH=/home/travis/mc/bin:$PATH
-- export MPLBACKEND='Agg'
+  - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then wget http://repo.continuum.io/miniconda/Miniconda-3.5.5-Linux-x86_64.sh
+    -O miniconda.sh; else wget http://repo.continuum.io/miniconda/Miniconda3-3.5.5-Linux-x86_64.sh
+    -O miniconda.sh; fi
+  - chmod +x miniconda.sh
+  - "./miniconda.sh -b -p /home/travis/mc"
+  - export PATH=/home/travis/mc/bin:$PATH
+  - export MPLBACKEND='Agg'
 install:
-- conda update --yes conda
-- conda config --add channels soft-matter
-- conda create -n testenv --yes $DEPS pip nose setuptools python=$TRAVIS_PYTHON_VERSION
-- source activate testenv
-- echo $PATH
-- which python
-- conda info
-- conda list
-- python setup.py install
+  - conda update --yes conda
+  - conda config --add channels soft-matter
+  - conda create -n testenv --yes $DEPS pip nose setuptools python=$TRAVIS_PYTHON_VERSION
+  - source activate testenv
+  - echo $PATH
+  - which python
+  - conda info
+  - conda list
+  - python setup.py install
 script: nosetests --with-coverage
 after_success:
-- coveralls
-deploy:
-  provider: pypi
-  distributions: "sdist bdist_wheel"
-  user: saroele
-  password:
-    secure: "a1ygtFztpFr3TQ3GC6XxKA9D4ktGQjfWb6C952UB9EAKPdDJZMxscMo1sfSXlSaF0DgshOU++6+H3Td3zD+vSbuI0vuK3Is6GRzvjYnXsqnP/PRJy2fWJ1ROAhxr21XCFHjbpNfaW5mFmRU4HDNXKOeMQhx7U2bSLEJXDlJ0leYfBvqVMXTRbA0gOdq03rVy2QT4k5cBL5NVJZIfWKyhtBp911xbMfds9/yZ6oqHCoOiKtq2RbLNEWiK6ICk8iTd/npYJEV0e38woIbnB8GsS9Mehc4ji9AjrUQ2kwIERxVG+UkFyM+i0/cUGl86X9+iBCHxFJWSDFpgNHNjvTasYCiHZL++XQQQG+lMBkYvSxfLEdP2lTO+KrwsLs7ECJvFOK8F/F8y9MpFsdYt3XuehFo+m9eWXAPVmVtcCWV0RJmaESP8LWxz0ky5SGtuL3+8ldM+sbFI32YPYfJ9SL028J2uoR6waWzBLnDBKhhn0GC9InGWKzj33/AUiZ6yQU1X86ldOdeJah+SseJXhiCx86sUlnZnEuaiEYb7/tZ6j4j9mEnzJaklm47eWVxIVdW04GfZvqayKc4DakfyWmyy13Felmh85FFvLK6/SjFP9+CX4AawI87SR56/Cgkex0Rwui0b0ejKiHCYfBg2eWjQToOyvghcDVwkwXV6WJDCMpA="
-  on:
-    tags: true
-    branch: master
-    python: 3.6
+  - coveralls
