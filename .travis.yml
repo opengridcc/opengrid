@@ -1,19 +1,17 @@
 language: python
 sudo: false
 cache: pip
+env:
+  - COVERALLS_REPO_TOKEN="RbnaxzEouDqGe0oNVwEP4TBS0sL20ZpGg"
 matrix:
   include:
     - python: "3.5"
     - python: "3.6"
 before_install:
-  - python3 -m venv venv
-  - source ./venv/bin/activate
   - python3 -m pip install -r requirements.txt
 install:
   - python3 -m pip install .
 script:
-  - python3 -m pytest
+  - coverage run -m pytest
 after_success:
-  - deactivate
-  - python3 -m pip install python-coveralls
   - coveralls

@@ -2,7 +2,7 @@
 **.ipynb_checkpoints
 **/index.html
 *.egg-info/
-.DS_Store
+.coverage
 
 build 
 dist

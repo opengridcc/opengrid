@@ -1,6 +1,5 @@
-python-coveralls
-coverage
-statsmodels
+coveralls
 mock
-pytest
 wheel
+pytest 
+pytest-cov
