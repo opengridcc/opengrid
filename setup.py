@@ -42,8 +42,8 @@ setup(
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6'
     ],
-    package_dir={},
-    packages=find_packages(),
+    package_dir={"": "src"},
+    packages=find_packages("src"),
     install_requires=[
         'matplotlib',
         'numpy',
