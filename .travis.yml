@@ -4,13 +4,12 @@ cache: pip
 matrix:
   include:
     - python: "3.5"
-      env: DEPS="numpy scipy matplotlib pandas"
     - python: "3.6"
-      env: DEPS="numpy scipy matplotlib pandas"
 before_install:
-  - python3 -m pip install wheel
+  - python3 -m pip install wheel pytest
 install:
   - python3 -m pip install .
-script: nosetests --with-coverage
+script:
+  - python3 -m pytest
 after_success:
   - coveralls
