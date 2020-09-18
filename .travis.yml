@@ -1,35 +1,43 @@
 language: python
-sudo: false
 
-python:
-  - "3.6"
-  - "3.7"
-  - "3.8"
+os: linux
+dist: bionic
 
-git:
-  depth: 3
-  quiet: true
-  submodules: true
-
-env:
-  - COVERALLS_REPO_TOKEN="RbnaxzEouDqGe0oNVwEP4TBS0sL20ZpGg"
+before_install: python3 -m pip install -r requirements.txt
+install: python3 -m pip install .
 
 stages:
-  - check
-  - install
-  - test
-
-before_script:
-  - python3 -m pip install -r requirements.txt
+  - pylint
+  - pip-install
+  - pytest
 
 jobs:
   include:
-    - stage: check
+    - stage: pylint
+      name: "Pylint check"
+      install: skip
       script: python3 -m pylint opengrid/**/*.py
-    - stage: install
-      script: python3 -m pip install .
-    - stage: test
+      python: "3.8"
+
+    - stage: pip-install
+      name: "Local installation using pip"
+      script: skip
+      python: "3.8"
+
+    - stage: pytest
+      name: "Pytest Python 3.6"
       script: python3 -m pytest
+      python: "3.6"
+
+    - stage: pytest
+      name: "Pytest Python 3.7"
+      script: python3 -m pytest
+      python: "3.7"
+
+    - stage: pytest
+      name: "Pytest Python 3.8"
+      script: python3 -m pytest
+      python: "3.8"
 
 after_success:
-  - coveralls
+  - COVERALLS_REPO_TOKEN="RbnaxzEouDqGe0oNVwEP4TBS0sL20ZpGg" coveralls
