@@ -3,3 +3,4 @@ mock
 wheel
 pytest
 pytest-cov
+pylint
