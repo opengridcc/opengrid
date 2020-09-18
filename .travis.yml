@@ -1,13 +1,35 @@
 language: python
 sudo: false
-cache: pip
+
+python:
+  - "3.6"
+  - "3.7"
+  - "3.8"
+
+git:
+  depth: 3
+  quiet: true
+  submodules: true
+
 env:
   - COVERALLS_REPO_TOKEN="RbnaxzEouDqGe0oNVwEP4TBS0sL20ZpGg"
-before_install:
+
+stages:
+  - check
+  - install
+  - test
+
+before_script:
   - python3 -m pip install -r requirements.txt
-install:
-  - python3 -m pip install .
-script:
-  - python3 -m pytest
+
+jobs:
+  include:
+    - stage: check
+      script: python3 -m pylint opengrid/**/*.py
+    - stage: install
+      script: python3 -m pip install .
+    - stage: test
+      script: python3 -m pytest
+
 after_success:
   - coveralls
