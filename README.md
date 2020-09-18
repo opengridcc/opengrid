@@ -1,69 +1,87 @@
-[![Build Status](https://travis-ci.org/EpoxyD/opengrid.svg?branch=master)](https://travis-ci.org/EpoxyD/opengrid)
-[![Coverage Status](https://coveralls.io/repos/github/EpoxyD/opengrid/badge.svg?branch=master)](https://coveralls.io/github/EpoxyD/opengrid?branch=master)
-
 # opengrid
 
 Open-source algorithms for data-driven building analysis and control
 
-License: Apache 2.0
+[![License](https://img.shields.io/github/license/EpoxyD/opengrid)](https://opensource.org/licenses/Apache-2.0)
+[![Build Status](https://travis-ci.org/EpoxyD/opengrid.svg?branch=master)](https://travis-ci.org/EpoxyD/opengrid)
+[![Coverage Status](https://coveralls.io/repos/github/EpoxyD/opengrid/badge.svg?branch=master)](https://coveralls.io/github/EpoxyD/opengrid?branch=master)
 
-# Installation
+## Installation
 
-## Basic setup
+### Local
 
-For the OpenGrid code to run and to enable setup you need a working installation of Python 3.5 (or above) and git.
-
-You can check your Python 3.\* installation by running `python3 --version` in the terminal. Git can be easily installed on most Unix based systems by running `sudo apt-get install git-all` in the terminal.
-
-Change your working directory to a clear location where you want to clone the opengrid library to. Then clone the repository and `cd` into it.
-
-```
-git clone https://github.com/opengridcc/opengrid.git
-cd opengrid
-```
-
-## Dependencies
-
-To be able to install all dependencies make sure you have pip3 installed. If not run `sudo apt-get install python3-pip` (linux) or `pip3 --version` (mac os)
-
-### Virtual environments
-
-For safety and clarity we'll use a virtuel environment for development. Start a new one and activate it before moving on. 
+Install the current local opengrid files using the following command:
 
 ``` bash
-python -m venv venv
+python3 -m pip install .
+```
+
+### Latest packaged version
+
+Install the latest available published opengrid package using
+
+``` bash
+python3 -m pip install opengrid
+```
+
+## Development
+
+### Basics
+
+Make sure the following are installed on your system:
+
+|         | Linux | MacOS | Windows |
+|---------|-------|-------|---------|
+| git     | ``` apt install git ``` | ``` brew install git ``` | [via git-scm](https://git-scm.com/download) |
+| python3 | ``` apt install python3 ``` | ``` brew install python3 ``` | [via python.org](https://www.python.org/downloads/windows/) |
+
+Check if installation was succesful by running:
+
+``` bash
+git --version
+python3 --version
+```
+
+Clone the opengrid repository to wherever you like:
+
+``` bash
+git clone https://github.com/EpoxyD/opengrid.git && cd opengrid
+```
+
+### [OPTIONAL] Virtual environment
+
+For safety and clarity we suggest you use a virtual development environment. This environment makes sure that there is no ambiguity between your already available python packages on your system and the ones you'll be using for development.
+
+Get started using the following command. You are inside the new environment once you see the environment name in front of your terminal entry.
+
+``` bash
+python3 -m venv venv
 source ./venv/bin/activate
 ```
 
-When you are done developing, do not forget to close down the virtual environment. Do not remove the test environment if you are planning to use it again later. You can just re-activate it.
+When you are done developing, deactivate the virtual environment. This will give you back access to your own python packages. Do not remove the test environment if you are planning to use it again later. You can just re-activate it.
 
 ``` bash
 deactivate
 (optional) rm -rf venv
 ```
 
-### Test Dependencies
+### Development required packages
 
-Install test dependencies inside of your virtual environment (after activation).
+Install required packages for development (Inside of virtual environment if you are using this).
 
-```python
+``` bash
 python3 -m pip install -r requirements.txt
-```
-
-### Package dependencies
-
-Install the package dependencies by installing the package locally
-
-``` python
-python3 -m pip install .
 ```
 
 ## Testing your setup
 
-To test if everything is setup correctly you can execute the test scripts:
+First, install the local package ([as mentioned above](#Local)). This will install the opengrid dependencies on your system, or in your virtual environment.
+
+To test if everything is setup correctly you can execute one of the test scripts:
 
 ``` bash
-python3 -m pytest test/analysis.py
+python3 -m pytest test/test_analyses.py
 ```
 
 If the terminal prints out something like:
