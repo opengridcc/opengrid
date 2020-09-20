@@ -17,7 +17,7 @@ dfw = pd.read_pickle('datasets/weather_2016_hour.pkl', compression='gzip')
 
 class WeatherTest(unittest.TestCase):
     def test_compute_degree_days(self):
-        res = weather.compute_degree_days(ts=dfw['temperature'],
+        res = weather.compute_degree_days(time_series=dfw['temperature'],
                                           heating_base_temperatures=[13, 16.5],
                                           cooling_base_temperatures=[16.5, 24])
         self.assertListEqual(sorted(['temp_equivalent', 'HDD_16.5', 'HDD_13', 'CDD_16.5', 'CDD_24']),
