@@ -6,14 +6,16 @@ Try to write all methods such that they take a dataframe as input
 and return a dataframe or list of dataframes.
 """
 
+from numbers import Number
+
 import datetime as dt
 import pandas as pd
-from numbers import Number
 import numpy as np
+
 from opengrid.library.exceptions import EmptyDataFrame
 
 
-class Analysis(object):
+class Analysis():
     """
     Generic Analysis
 
@@ -22,18 +24,16 @@ class Analysis(object):
     It also has output methods: plot, to json...
     """
 
-    def __init__(self, data_frame, *args, **kwargs):
+    def __init__(self, data_frame):
+        """ Virtual method """
         self.data_frame = data_frame
-
-    def do_analysis(self, *args, **kwargs):
-        # To be overwritten by inheriting class
-        self.result = self.data_frame.copy()
+        self.result = None
 
     def plot(self):
-        self.result.plot()
+        """ Virtual method """
 
     def to_json(self):
-        return self.result.to_json()
+        """ Virtual method """
 
 
 class DailyAgg(Analysis):
@@ -45,41 +45,58 @@ class DailyAgg(Analysis):
       This can be used eg. to get the minimum consumption during the night.
     """
 
-    def __init__(self, data_frame, agg, starttime=dt.time.min, endtime=dt.time.max):
+    def __init__(self: Analysis,
+                 data_frame: pd.DataFrame,
+                 aggregate: str,
+                 starttime: dt.time = dt.time.min,
+                 endtime: dt.time = dt.time.max) -> None:
         """
         Parameters
         ----------
         data_frame : pandas.DataFrame
             With pandas.DatetimeIndex and one or more columns
-        agg : str
+        aggregate : str
             'min', 'max', or another aggregation function
         starttime, endtime : datetime.time objects
             For each day, only consider the time between starttime and endtime
             If None, use begin of day/end of day respectively
         """
-        super(DailyAgg, self).__init__(data_frame, agg, starttime=starttime, endtime=endtime)
+        super().__init__(data_frame=data_frame)
+        self.aggregate = aggregate
+        self.starttime = starttime
+        self.endtime = endtime
 
-    def do_analysis(self, agg, starttime=dt.time.min, endtime=dt.time.max):
+    def do_analysis(self,
+                    aggregate,
+                    starttime=dt.time.min,
+                    endtime=dt.time.max):
         """ TODO docstring """
-        if not self.data_frame.empty:
-            data_frame = self.data_frame[(self.data_frame.index.time >= starttime) & (self.data_frame.index.time < endtime)]
-            data_frame = data_frame.resample('D', how=agg)
-            self.result = data_frame
-        else:
-            self.result = pd.DataFrame()
+        if self.data_frame.empty:
+            raise EmptyDataFrame
+
+        data_frame = self.data_frame[(
+            self.data_frame.index.time >= starttime
+        ) & (
+            self.data_frame.index.time < endtime
+        )]
+        data_frame = data_frame.resample(rule='D',
+                                         how=aggregate)
+        self.result = data_frame
 
 
-def standby(data_frame, resolution='24h', time_window=None):
+def standby(data_frame,
+            resolution='24h',
+            time_window=None):
     """
     Compute standby power
 
     Parameters
     ----------
-    df : pandas.DataFrame or pandas.Series
+    data_frame : pandas.DataFrame or pandas.Series
         Electricity Power
     resolution : str, default='d'
-        Resolution of the computation.  Data will be resampled to this resolution (as mean) before computation
-        of the minimum.
+        Resolution of the computation.  Data will be resampled to this resolution (as mean)
+        before computation of the minimum.
         String that can be parsed by the pandas resample function, example ='h', '15min', '6h'
     time_window : tuple with start-hour and end-hour, default=None
         Specify the start-time and end-time for the analysis.
@@ -88,44 +105,54 @@ def standby(data_frame, resolution='24h', time_window=None):
 
     Returns
     -------
-    df : pandas.Series with DateTimeIndex in the given resolution
+    data_frame : pandas.Series with DateTimeIndex in the given resolution
     """
 
-    if df.empty:
-        raise EmptyDataFrame()
+    if data_frame.empty:
+        raise EmptyDataFrame
 
-    df = pd.DataFrame(df)  # if df was a pd.Series, convert to DataFrame
-    def parse_time(t):
-        if isinstance(t, Number):
-            return pd.Timestamp.utcfromtimestamp(t).time()
-        else:
-            return pd.Timestamp(t).time()
+    # if data_frame was a pd.Series, convert to DataFrame
+    data_frame = pd.DataFrame(data_frame)
 
+    def parse_time(time):
+        if isinstance(time, Number):
+            return pd.Timestamp.utcfromtimestamp(time).time()
+        return pd.Timestamp(time).time()
 
     # first filter based on the time-window
-    if time_window is not None:
+    if time_window:
         t_start = parse_time(time_window[0])
         t_end = parse_time(time_window[1])
         if t_start > t_end:
             # start before midnight
-            df = df[(df.index.time >= t_start) | (df.index.time < t_end)]
+            data_frame = data_frame[(
+                data_frame.index.time >= t_start
+            ) | (
+                data_frame.index.time < t_end
+            )]
         else:
-            df = df[(df.index.time >= t_start) & (df.index.time < t_end)]
+            data_frame = data_frame[(
+                data_frame.index.time >= t_start
+            ) & (
+                data_frame.index.time < t_end
+            )]
 
-    return df.resample(resolution).min()
+    return data_frame.resample(resolution).min()
 
 
-def share_of_standby(df, resolution='24h', time_window=None):
+def share_of_standby(data_frame: pd.DataFrame,
+                     resolution: str = 'd',
+                     time_window=None):
     """
     Compute the share of the standby power in the total consumption.
 
     Parameters
     ----------
-    df : pandas.DataFrame or pandas.Series
+    data_frame : pandas.DataFrame or pandas.Series
         Power (typically electricity, can be anything)
     resolution : str, default='d'
-        Resolution of the computation.  Data will be resampled to this resolution (as mean) before computation
-        of the minimum.
+        Resolution of the computation.  Data will be resampled to this resolution (as mean)
+        before computation of the minimum.
         String that can be parsed by the pandas resample function, example ='h', '15min', '6h'
     time_window : tuple with start-hour and end-hour, default=None
         Specify the start-time and end-time for the analysis.
@@ -137,16 +164,17 @@ def share_of_standby(df, resolution='24h', time_window=None):
     fraction : float between 0-1 with the share of the standby consumption
     """
 
-    p_sb = standby(df, resolution, time_window)
-    df = df.resample(resolution).mean()
-    p_tot = df.sum()
-    p_standby = p_sb.sum()
-    share_standby = p_standby / p_tot
-    res = share_standby.iloc[0]
-    return res
+    standby_data_frame = standby(data_frame, resolution, time_window)
+    standby_power = standby_data_frame.sum()
+
+    total_data_frame = data_frame.resample(resolution).mean()
+    total_power = total_data_frame.sum()
+
+    standby_share = standby_power / total_power
+    return standby_share.iloc[0]
 
 
-def count_peaks(ts):
+def count_peaks(time_series):
     """
     Toggle counter for gas boilers
 
@@ -154,7 +182,7 @@ def count_peaks(ts):
 
     Parameters
     ----------
-    ts: Pandas Series
+    time_series: Pandas Series
         Gas consumption in minute resolution
 
     Returns
@@ -162,20 +190,22 @@ def count_peaks(ts):
     int
     """
 
-    on_toggles = ts.diff() > 3000
+    on_toggles = time_series.diff() > 3000
     shifted = np.logical_not(on_toggles.shift(1))
     result = on_toggles & shifted
     count = result.sum()
     return count
 
 
-def load_factor(ts, resolution=None, norm=None):
+def calculate_load_factor(time_series,
+                          resolution=None,
+                          norm=None):
     """
     Calculate the ratio of input vs. norm over a given interval.
 
     Parameters
     ----------
-    ts : pandas.Series
+    time_series : pandas.Series
         timeseries
     resolution : str, optional
         interval over which to calculate the ratio
@@ -188,12 +218,12 @@ def load_factor(ts, resolution=None, norm=None):
     -------
     pandas.Series
     """
-    if norm is None:
-        norm = ts.max()
 
-    if resolution is not None:
-        ts = ts.resample(rule=resolution).mean()
+    if not norm:
+        norm = time_series.max()
 
-    lf = ts / norm
+    if resolution:
+        time_series = time_series.resample(rule=resolution).mean()
 
-    return lf
+    load_factor = time_series / norm
+    return load_factor

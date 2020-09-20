@@ -73,8 +73,9 @@ class RegressionTest(unittest.TestCase):
         data_frame_month = data_frame.resample('MS').sum().loc['2016', :]
         data_frame_training = data_frame_month.iloc[:-1, :]
         data_frame_pred = data_frame_month.iloc[[-1], :]
-        mvlr = regression.MultiVarLinReg(
-            data_frame_training, '313b', p_max=0.04)
+        mvlr = regression.MultiVarLinReg(data_frame=data_frame_month,
+                                         dependent_var='313b',
+                                         p_max=0.04)
         mvlr.do_analysis()
         data_frame_pred_95 = mvlr._predict(
             mvlr.fit, data_frame=data_frame_pred)
@@ -97,7 +98,9 @@ class RegressionTest(unittest.TestCase):
     def test_plot(self):
         data_frame = datasets.get('gas_2016_hour')
         data_frame_month = data_frame.resample('MS').sum()
-        mvlr = regression.MultiVarLinReg(data_frame_month, '313b', p_max=0.04)
+        mvlr = regression.MultiVarLinReg(data_frame=data_frame_month,
+                                         dependent_var='313b',
+                                         p_max=0.04)
         mvlr.do_analysis()
 
         with mock.patch.object(plt_mocked, 'subplots', return_value=(fig_mock, ax_mock)):
@@ -106,7 +109,9 @@ class RegressionTest(unittest.TestCase):
     def test_alternative_metrics(self):
         data_frame = datasets.get('gas_2016_hour')
         data_frame_month = data_frame.resample('MS').sum()
-        mvlr = regression.MultiVarLinReg(data_frame_month, '313b', p_max=0.04)
+        mvlr = regression.MultiVarLinReg(data_frame=data_frame_month,
+                                         dependent_var='313b',
+                                         p_max=0.04)
         mvlr.do_analysis()
         best_rsquared = mvlr.find_best_rsquared(mvlr.list_of_fits)
         best_akaike = mvlr.find_best_akaike(mvlr.list_of_fits)
@@ -118,7 +123,8 @@ class RegressionTest(unittest.TestCase):
         "Create overfitted model and prune it"
         data_frame = datasets.get('gas_2016_hour')
         data_frame_month = data_frame.resample('MS').sum()
-        mvlr = regression.MultiVarLinReg(data_frame_month, '313b')
+        mvlr = regression.MultiVarLinReg(data_frame=data_frame_month,
+                                         dependent_var='313b')
         mvlr.do_analysis()
         self.assertTrue("ba14" in mvlr.fit.model.exog_names)
         pruned = mvlr._prune(mvlr.fit, 0.05)
@@ -140,8 +146,9 @@ class RegressionTest(unittest.TestCase):
         data_frame_month = data_frame.resample('MS').sum().loc['2016', :]
         data_frame_training = data_frame_month.iloc[:-1, :]
         data_frame_pred = data_frame_month.iloc[[-1], :]
-        mvlr = regression.MultiVarLinReg(
-            data_frame_training, '313b', p_max=0.04)
+        mvlr = regression.MultiVarLinReg(data_frame=data_frame_month,
+                                         dependent_var='313b',
+                                         p_max=0.04)
         mvlr.do_analysis()
         data_frame_pred_95_orig = mvlr._predict(
             mvlr.fit, data_frame=data_frame_pred)
