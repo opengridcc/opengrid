@@ -20,12 +20,13 @@ class PlotStyleTest(unittest.TestCase):
 class CarpetTest(unittest.TestCase):
     def test_default(self):
         index = pd.date_range('2015-1-1', '2015-2-1', freq='h')
-        ser = pd.Series(np.random.normal(size=len(index)),
-                        index=index, name='abc')
-        assert plotting.carpet(ser) is not None
+        series = pd.Series(np.random.normal(size=len(index)),
+                           index=index, name='abc')
+        assert plotting.carpet(time_series=series) is not None
 
     def test_empty(self):
-        assert plotting.carpet(pd.Series(index=list('abc'))) is None
+        series = pd.Series(index=['abc'])
+        assert plotting.carpet(time_series=series) is None
 
 
 class BoxplotTest(unittest.TestCase):
@@ -43,7 +44,9 @@ class BoxplotTest(unittest.TestCase):
         print(dataframe.index)
         plotting.boxplot(dataframe,
                          plot_mean=True,
-                         plot_ids=[2, 3], title="Title", xlabel="xlable", ylabel="ylable")
+                         plot_ids=[2, 3],
+                         title="Title",
+                         labels=("xlabel", "ylabel"))
 
 
 if __name__ == '__main__':

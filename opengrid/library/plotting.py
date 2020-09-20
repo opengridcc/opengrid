@@ -1,130 +1,138 @@
-import os
+""" TODO docstring """
+
+# pylint: disable=E1101
+# SOURCE: https://github.com/PyCQA/pylint/issues/2289
+
 import numpy as np
 import pandas as pd
-import matplotlib
-import matplotlib.cm as cm
-import matplotlib.pyplot as plt
-from matplotlib.dates import date2num, num2date, HourLocator, DayLocator, AutoDateLocator, DateFormatter
+from matplotlib import cm, pyplot, style
+from matplotlib.dates import date2num
+from matplotlib.dates import HourLocator, AutoDateLocator, DateFormatter
 from matplotlib.colors import LogNorm
 
 
 def plot_style():
-    # matplotlib inline, only when jupyter notebook
-    # try-except causes problems in Pycharm Console
-    if 'JPY_PARENT_PID' in os.environ:
-        get_ipython().run_line_magic('matplotlib', 'inline')
+    """ TODO docstring """
 
-    matplotlib.style.use('seaborn-talk')
-    matplotlib.style.use('seaborn-whitegrid')
-    matplotlib.style.use('seaborn-deep')
+    style.use('seaborn-talk')
+    style.use('seaborn-whitegrid')
+    style.use('seaborn-deep')
 
-    plt.rcParams['figure.figsize'] = 16, 6
-
-    # To overrule the legend style
-    plt.rcParams['legend.facecolor'] = "#ffffff"
-    plt.rcParams['legend.frameon'] = True
-    plt.rcParams['legend.framealpha'] = 1
-
-    return plt
+    pyplot.rcParams['figure.figsize'] = 16, 6
+    pyplot.rcParams['legend.facecolor'] = "#ffffff"
+    pyplot.rcParams['legend.frameon'] = True
+    pyplot.rcParams['legend.framealpha'] = 1
 
 
-def carpet(timeseries, **kwargs):
+def carpet(time_series, options=None):
     """
-    Draw a carpet plot of a pandas timeseries.
+    Draw a carpet plot of a pandas time_series.
 
     The carpet plot reads like a letter. Every day one line is added to the
     bottom of the figure, minute for minute moving from left (morning) to right
     (evening).
     The color denotes the level of consumption and is scaled logarithmically.
     If vmin and vmax are not provided as inputs, the minimum and maximum of the
-    colorbar represent the minimum and maximum of the (resampled) timeseries.
+    colorbar represent the minimum and maximum of the (resampled) time_series.
 
     Parameters
     ----------
-    timeseries : pandas.Series
-    vmin, vmax : If not None, either or both of these values determine the range
-    of the z axis. If None, the range is given by the minimum and/or maximum
-    of the (resampled) timeseries.
-    zlabel, title : If not None, these determine the labels of z axis and/or
-    title. If None, the name of the timeseries is used if defined.
-    cmap : matplotlib.cm instance, default coolwarm
+    time_series :
+        pandas.Series
+    vmin, vmax :
+        If not None, either or both of these values determine the range of the z axis.
+        If None, the range is given by the minimum and/or maximum of the (resampled) time_series.
+    zlabel, title :
+        If not None, these determine the labels of z axis and/or title. If None, the name of
+        the time_series is used if defined.
+    cmap :
+        matplotlib.cm instance, default coolwarm
 
     Examples
     --------
     >>> import numpy as np
     >>> import pandas as pd
     >>> from opengrid.library import plotting
-    >>> plt = plotting.plot_style()
+    >>> pyplot = plotting.plot_style()
     >>> index = pd.date_range('2015-1-1','2015-12-31',freq='h')
     >>> ser = pd.Series(np.random.normal(size=len(index)), index=index, name='abc')
     >>> im = plotting.carpet(ser)
     """
 
-    # define optional input parameters
-    cmap = kwargs.pop('cmap', cm.coolwarm)
-    norm = kwargs.pop('norm', LogNorm())
-    interpolation = kwargs.pop('interpolation', 'nearest')
-    cblabel = kwargs.pop('zlabel', timeseries.name if timeseries.name else '')
-    title = kwargs.pop('title', 'carpet plot: ' +
-                       timeseries.name if timeseries.name else '')
-
     # data preparation
-    if timeseries.dropna().empty:
-        print('skipped {} - no data'.format(title))
-        return
-    ts = timeseries.resample('15min').interpolate()
-    vmin = max(0.1, kwargs.pop('vmin', ts[ts > 0].min()))
-    vmax = max(vmin, kwargs.pop('vmax', ts.quantile(.999)))
+    if time_series.dropna().empty:
+        print('skipped - no data')
+        return None
+
+    options = options if options else {}
+
+    time_series = time_series.resample('15min').interpolate()
+    time_series_name = time_series.name if "name" in time_series else ""
 
     # convert to dataframe with date as index and time as columns by
     # first replacing the index by a MultiIndex
-    mpldatetimes = date2num(ts.index.to_pydatetime())
-    ts.index = pd.MultiIndex.from_arrays(
-        [np.floor(mpldatetimes), 2 + mpldatetimes % 1])  # '2 +': matplotlib bug workaround.
+    mpldatetimes = date2num(time_series.index.to_pydatetime())
+    time_series.index = pd.MultiIndex.from_arrays([np.floor(mpldatetimes),
+                                                   2 + mpldatetimes % 1])
     # and then unstacking the second index level to columns
-    df = ts.unstack()
+    data_frame = time_series.unstack()
 
     # data plotting
 
-    fig, ax = plt.subplots()
-    # define the extent of the axes (remark the +- 0.5  for the y axis in order to obtain aligned date ticks)
-    extent = [df.columns[0], df.columns[-1],
-              df.index[-1] + 0.5, df.index[0] - 0.5]
-    im = plt.imshow(df, vmin=vmin, vmax=vmax, extent=extent, cmap=cmap, aspect='auto', norm=norm,
-                    interpolation=interpolation, **kwargs)
+    _fig, axes = pyplot.subplots()
+
+    vmin = options.pop('vmin', time_series[time_series > 0].min())
+    vmin = max(0.1, vmin)
+
+    vmax = options.pop('vmax', time_series.quantile(.999))
+    vmax = max(vmin, vmax)
+
+    extent = [data_frame.columns[0],
+              data_frame.columns[-1],
+              data_frame.index[-1] + 0.5,   # + 0.5 to align date ticks
+              data_frame.index[0] - 0.5]    # - 0.5 to align date ticks
+
+    axes_image = pyplot.imshow(X=data_frame,
+                               vmin=vmin,
+                               vmax=vmax,
+                               extent=extent,
+                               cmap=options.pop('cmap', cm.coolwarm),
+                               aspect=options.pop('aspect', 'auto'),
+                               norm=options.pop('norm', LogNorm()),
+                               interpolation=options.pop('interpolation', 'nearest'))
 
     # figure formatting
-
     # x axis
-    ax.xaxis_date()
-    ax.xaxis.set_major_locator(HourLocator(interval=2))
-    ax.xaxis.set_major_formatter(DateFormatter('%H:%M'))
-    ax.xaxis.grid(True)
-    plt.xlabel('UTC Time')
+    axes.xaxis_date()
+    axes.xaxis.set_major_locator(HourLocator(interval=2))
+    axes.xaxis.set_major_formatter(DateFormatter('%H:%M'))
+    axes.xaxis.grid(True)
+    pyplot.xlabel('UTC Time')
 
     # y axis
-    ax.yaxis_date()
-    dmin, dmax = ax.yaxis.get_data_interval()
-    number_of_days = (num2date(dmax) - num2date(dmin)).days
+    axes.yaxis_date()
+
     # AutoDateLocator is not suited in case few data is available
-    if abs(number_of_days) <= 35:
-        ax.yaxis.set_major_locator(DayLocator())
-    else:
-        ax.yaxis.set_major_locator(AutoDateLocator())
-    ax.yaxis.set_major_formatter(DateFormatter("%a, %d %b %Y"))
+    axes.yaxis.set_major_locator(AutoDateLocator())
+    axes.yaxis.set_major_formatter(DateFormatter("%a, %d %b %Y"))
 
     # plot colorbar
-    cbticks = np.logspace(np.log10(vmin), np.log10(vmax), 11, endpoint=True)
-    cb = plt.colorbar(format='%.0f', ticks=cbticks)
-    cb.set_label(cblabel)
+    colorbar_label = options.pop('zlabel', time_series_name)
+    colorbar_ticks = np.logspace(start=np.log10(vmin),
+                                 stop=np.log10(vmax),
+                                 num=11,
+                                 endpoint=True)
+    colorbar = pyplot.colorbar(format='%.0f',
+                               ticks=colorbar_ticks)
+    colorbar.set_label(colorbar_label)
 
     # plot title
-    plt.title(title)
+    pyplot.title("Carpet plot - %s" % time_series_name)
 
-    return im
+    return axes_image
 
 
-def boxplot(df, plot_mean=False, plot_ids=None, title=None, xlabel=None, ylabel=None):
+def boxplot(data_frame, plot_mean=False, plot_ids=None, title="",  labels: tuple = ("x", "y")):
     """
     Plot boxplots
 
@@ -132,8 +140,8 @@ def boxplot(df, plot_mean=False, plot_ids=None, title=None, xlabel=None, ylabel=
 
     Parameters
     ----------
-    df: Pandas Dataframe
-        Every collumn is a timeseries
+    data_frame: Pandas Dataframe
+        Every collumn is a time_series
     plot_mean: bool
         Wether or not to plot the means
     plot_ids: [str]
@@ -144,39 +152,36 @@ def boxplot(df, plot_mean=False, plot_ids=None, title=None, xlabel=None, ylabel=
     matplotlib figure
     """
 
-    df = df.applymap(float)
-    description = df.apply(pd.DataFrame.describe, axis=1)
+    data_frame = data_frame.applymap(float)
+    description = data_frame.apply(func=pd.DataFrame.describe,
+                                   axis=1)
 
     # plot
-    plt = plot_style()
+    plot_style()
 
-    plt.boxplot(x=df)
-    #plt.setp(bp['boxes'], color='black')
-    #plt.setp(bp['whiskers'], color='black')
-    if plot_ids is not None:
-        for id in plot_ids:
-            if id in df.columns:
-                plt.scatter(x=range(1, len(df) + 1), y=df[id], label=str(id))
+    pyplot.boxplot(x=data_frame)
+    #pyplot.setp(bp['boxes'], color='black')
+    #pyplot.setp(bp['whiskers'], color='black')
+    if plot_ids:
+        for plot_id in (x if x in data_frame.columns else None for x in plot_ids):
+            pyplot.scatter(x=range(1, len(data_frame) + 1),
+                           y=data_frame[plot_id],
+                           label=str(plot_id))
 
     if plot_mean:
-        plt.scatter(x=range(1, len(df) + 1),
-                    y=description['mean'],
-                    label="Mean",
-                    color='k',
-                    s=30,
-                    marker='+')
+        pyplot.scatter(x=range(1, len(data_frame) + 1),
+                       y=description['mean'],
+                       label="Mean",
+                       color='k',
+                       s=30,
+                       marker='+')
 
-    ax = plt.gca()
-    print(ax.get_xticks(), ax.get_xticklabels())
-    ax.set_xticks(df.index)
-    # plt.xticks(rotation=45)
+    axes = pyplot.gca()
+    axes.set_xticks(data_frame.index)
 
-    plt.legend()
-    if title is not None:
-        plt.title(title)
-    if xlabel is not None:
-        plt.xlabel(xlabel)
-    if ylabel is not None:
-        plt.ylabel(ylabel)
+    pyplot.legend()
+    pyplot.title(title)
+    pyplot.xlabel(labels[0])
+    pyplot.ylabel(labels[1])
 
-    return plt.gcf()
+    return pyplot.gcf()
