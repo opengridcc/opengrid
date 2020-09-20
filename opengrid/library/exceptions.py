@@ -1,5 +1,9 @@
+""" TODO docstring """
+
+
 class EmptyDataFrame(Exception):
-    pass
+    """ TODO docstring """
+
 
 class UnexpectedSamplingRate(Exception):
-    pass
+    """ TODO docstring """
