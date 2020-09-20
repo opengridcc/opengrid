@@ -6,18 +6,17 @@ Try to write all methods such that they take a dataframe as input
 and return a dataframe or list of dataframes.
 """
 
-# pylint : disable=E0611
-
+# pylint: disable=E0611
 from patsy import ModelDesc, Term, LookupFactor
 from statsmodels.sandbox.regression.predstd import wls_prediction_std
 import statsmodels.formula.api as fm
 import numpy as np
 
+from matplotlib import pyplot
+
 
 from .analysis import Analysis
 from .plotting import plot_style
-
-plot = plot_style()
 
 
 def dict_to_model_desc(dictionary):
@@ -83,11 +82,7 @@ class MultiVarLinReg(Analysis):
     def __init__(self,
                  data_frame,
                  dependent_var,
-                 p_max=0.05,
-                 list_of_x=None,
-                 confint=0.95,
-                 cross_validation=False,
-                 allow_negative_predictions=False):
+                 options=None):
         """
 
         Parameters
@@ -107,9 +102,9 @@ class MultiVarLinReg(Analysis):
             If True, compute the model based on cross-validation (leave one out)
             Only possible if the data_frame has less than 15 entries.
             Note : this will take much longer computation times!
-        allow_negative_predictions : bool, default=False
+        negative_predictions : bool, default=False
             If True, allow predictions to be negative.
-            For gas consumption or PV production, this is not physical so allow_negative_predictions
+            For gas consumption or PV production, this is not physical so negative_predictions
             should be False.
         """
 
@@ -120,15 +115,20 @@ class MultiVarLinReg(Analysis):
 
         self.dependent_var = dependent_var
 
-        self.p_max = p_max
-        self.list_of_x = list_of_x or self.data_frame.columns.tolist()
-        self.confint = confint
-        self.cross_validation = cross_validation
-        self.allow_negative_predictions = allow_negative_predictions
+        options = options if options else {}
+
+        self.p_max = options.pop('p_max', 0.05)
+        self.confint = options.pop('confint', 0.95)
+        self.list_of_x = options.pop(
+            'list_of_x', self.data_frame.columns.tolist())
+        self.cross_validation = options.pop('cross_validation', False)
+        self.negative_predictions = options.pop('negative_predictions', False)
+
         try:
             self.list_of_x.remove(self.dependent_var)
         except ValueError:
             pass
+
         self._fit = None
         self._list_of_fits = []
         self.list_of_cverrors = []
@@ -205,14 +205,12 @@ class MultiVarLinReg(Analysis):
         """
         Find the best model (fit) based on cross-valiation (leave one out)
         """
-        assert len(
-            self.data_frame) < 15, "Cross-validation requires 15 datapoints"
+        assert len(self.data_frame) < 15, "Minimum 15 datapoints"
 
         # initialization: first model is the mean, but compute cv correctly.
         errors = []
         response_term = [Term([LookupFactor(self.dependent_var)])]
-        model_terms = [Term([])]  # empty term is the intercept
-        model_desc = ModelDesc(response_term, model_terms)
+        model_desc = ModelDesc(response_term, [Term([])])
         for i in self.data_frame.index:
             # make new_fit, compute cross-validation and store error
             data_frame_ = self.data_frame.drop(i, axis=0)
@@ -233,8 +231,10 @@ class MultiVarLinReg(Analysis):
             # try each x in all_exog and overwrite if we find a better one
             # at the end of iteration (and not earlier), save the best of the iteration
             better_model_found = False
-            best = dict(
-                fit=self._list_of_fits[-1], cverror=self.list_of_cverrors[-1])
+            best = {
+                "fit": self._list_of_fits[-1],
+                "cverror": self.list_of_cverrors[-1]
+            }
             for value, term in all_model_terms_dict.items():
                 model_desc = ModelDesc(
                     response_term, self._list_of_fits[-1].model.formula.rhs_termlist + [term])
@@ -294,7 +294,7 @@ class MultiVarLinReg(Analysis):
 
         def remove_from_model_desc(varname, model_desc):
             """
-            Return a model_desc without x
+            Return a model_desc without varname
             """
 
             rhs_termlist = []
@@ -322,19 +322,19 @@ class MultiVarLinReg(Analysis):
             pars_to_prune.remove('Intercept')
         return fit
 
-    @staticmethod
+    @ staticmethod
     def find_best_rsquared(list_of_fits):
         """Return the best fit, based on rsquared"""
         res = sorted(list_of_fits, key=lambda x: x.rsquared)
         return res[-1]
 
-    @staticmethod
+    @ staticmethod
     def find_best_akaike(list_of_fits):
         """Return the best fit, based on Akaike information criterion"""
         res = sorted(list_of_fits, key=lambda x: x.aic)
         return res[0]
 
-    @staticmethod
+    @ staticmethod
     def find_best_bic(list_of_fits):
         """Return the best fit, based on Akaike information criterion"""
         res = sorted(list_of_fits, key=lambda x: x.bic)
@@ -353,7 +353,7 @@ class MultiVarLinReg(Analysis):
         The result will depend on the following attributes of self:
         confint : float (default=0.95)
             Confidence level for two-sided hypothesis
-        allow_negative_predictions : bool (default=True)
+        negative_predictions : bool (default=True)
             If False, correct negative predictions to zero
             (typically for energy consumption predictions)
 
@@ -375,7 +375,7 @@ class MultiVarLinReg(Analysis):
         if 'Intercept' in fit.model.exog_names:
             data_frame_res['Intercept'] = 1.0
         data_frame_res['predicted'] = fit.predict(data_frame_res)
-        if not self.allow_negative_predictions:
+        if not self.negative_predictions:
             data_frame_res.loc[data_frame_res['predicted']
                                < 0, 'predicted'] = 0
 
@@ -386,7 +386,8 @@ class MultiVarLinReg(Analysis):
         data_frame_res['interval_u'] = interval_u
 
         if 'Intercept' in data_frame_res:
-            data_frame_res.drop(labels=['Intercept'], axis=1, inplace=True)
+            data_frame_res.drop(
+                labels=['Intercept'], axis=1, inplace=True)
 
         return data_frame_res
 
@@ -402,7 +403,7 @@ class MultiVarLinReg(Analysis):
         None, but the result depends on the following attributes of self:
         confint : float (default=0.95)
             Confidence level for two-sided hypothesis
-        allow_negative_predictions : bool (default=True)
+        negative_predictions : bool (default=True)
             If False, correct negative predictions to zero
             (typically for energy consumption predictions)
 
@@ -440,19 +441,19 @@ class MultiVarLinReg(Analysis):
 
         Returns
         -------
-        figures : List of plot.figure objects.
+        figures : List of pyplot.figure objects.
 
         """
         plot_style()
+
         figures = []
         fit = kwargs.get('fit', self.fit)
         data_frame = kwargs.get('data_frame', self.data_frame)
 
-        if not 'predicted' in data_frame.columns:
+        if 'predicted' not in data_frame.columns:
             data_frame = self._predict(fit=fit, data_frame=data_frame)
         # split the data_frame in the auto-validation and prognosis part
-        data_frame_auto = data_frame.loc[self.data_frame.index[0]
-            :self.data_frame.index[-1]]
+        data_frame_auto = data_frame.loc[self.data_frame.index[0]:self.data_frame.index[-1]]
         if data_frame_auto.empty:
             data_frame_prog = data_frame
         else:
@@ -472,40 +473,40 @@ class MultiVarLinReg(Analysis):
                 exog1, 'predicted', 'interval_u', 'interval_l']]
             data_framemodel.index = data_framemodel[exog1]
             data_framemodel = data_framemodel.sort_index()
-            plot.plot(data_framemodel.index,
-                      data_framemodel['predicted'], '--', color='royalblue')
-            plot.plot(data_framemodel.index,
-                      data_framemodel['interval_l'], ':', color='royalblue')
-            plot.plot(data_framemodel.index,
-                      data_framemodel['interval_u'], ':', color='royalblue')
+            pyplot.plot(data_framemodel.index,
+                        data_framemodel['predicted'], '--', color='royalblue')
+            pyplot.plot(data_framemodel.index,
+                        data_framemodel['interval_l'], ':', color='royalblue')
+            pyplot.plot(data_framemodel.index,
+                        data_framemodel['interval_u'], ':', color='royalblue')
             # plot dots for the measurements
             if len(data_frame_auto) > 0:
-                plot.plot(data_frame_auto[exog1],
-                          data_frame_auto[self.dependent_var],
-                          'o',
-                          mfc='orangered',
-                          mec='orangered',
-                          ms=8,
-                          label='Data used for model fitting')
+                pyplot.plot(data_frame_auto[exog1],
+                            data_frame_auto[self.dependent_var],
+                            'o',
+                            mfc='orangered',
+                            mec='orangered',
+                            ms=8,
+                            label='Data used for model fitting')
             if len(data_frame_prog) > 0:
-                plot.plot(data_frame_prog[exog1],
-                          data_frame_prog[self.dependent_var],
-                          'o',
-                          mfc='seagreen',
-                          mec='seagreen',
-                          ms=8,
-                          label='Data not used for model fitting')
-            plot.title(
+                pyplot.plot(data_frame_prog[exog1],
+                            data_frame_prog[self.dependent_var],
+                            'o',
+                            mfc='seagreen',
+                            mec='seagreen',
+                            ms=8,
+                            label='Data not used for model fitting')
+            pyplot.title(
                 'rsquared={:.2f} - BIC={:.1f}'.format(fit.rsquared, fit.bic))
-            plot.xlabel(exog1)
-            figures.append(plot.gcf())
+            pyplot.xlabel(exog1)
+            figures.append(pyplot.gcf())
 
         if bar_chart:
             # the x locations for the groups
             ind = np.arange(len(data_frame.index))
             width = 0.35  # the width of the bars
 
-            _fig, axes = plot.subplots()
+            _fig, axes = pyplot.subplots()
             title = 'Measured'  # will be appended based on the available data
             if len(data_frame_auto) > 0:
                 model = axes.bar(ind[:len(data_frame_auto)],
@@ -538,10 +539,10 @@ class MultiVarLinReg(Analysis):
             axes.yaxis.grid(True)
             axes.xaxis.grid(False)
 
-            plot.legend(ncol=3, loc='upper center')
-            figures.append(plot.gcf())
+            pyplot.legend(ncol=3, loc='upper center')
+            figures.append(pyplot.gcf())
 
-        plot.show()
+        pyplot.show()
 
         return figures
 

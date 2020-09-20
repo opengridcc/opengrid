@@ -29,10 +29,10 @@ class Analysis():
         self.data_frame = data_frame
         self.result = None
 
-    def plot(self):
+    def plot(self, **kwargs):
         """ Virtual method """
 
-    def to_json(self):
+    def to_json(self, **kwargs):
         """ Virtual method """
 
 

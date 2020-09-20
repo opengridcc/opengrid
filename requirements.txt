@@ -3,4 +3,9 @@ mock
 wheel
 pytest
 pytest-cov
-pylint
+flake8
+
+matplotlib
+pandas
+patsy
+statsmodels

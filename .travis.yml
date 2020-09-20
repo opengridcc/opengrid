@@ -7,16 +7,16 @@ before_install: python3 -m pip install -r requirements.txt
 install: python3 -m pip install .
 
 stages:
-  - pylint
+  - linting
   - pip-install
   - pytest
 
 jobs:
   include:
-    - stage: pylint
-      name: "Pylint check"
+    - stage: linting
+      name: "Flake8 check"
       install: skip
-      script: python3 -m pylint opengrid/**/*.py
+      script: flake8 opengrid/library/*.py --max-line-length 100 --exit-zero
       python: "3.8"
 
     - stage: pip-install

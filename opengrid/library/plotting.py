@@ -160,8 +160,8 @@ def boxplot(data_frame, plot_mean=False, plot_ids=None, title="",  labels: tuple
     plot_style()
 
     pyplot.boxplot(x=data_frame)
-    #pyplot.setp(bp['boxes'], color='black')
-    #pyplot.setp(bp['whiskers'], color='black')
+    # pyplot.setp(bp['boxes'], color='black')
+    # pyplot.setp(bp['whiskers'], color='black')
     if plot_ids:
         for plot_id in (x if x in data_frame.columns else None for x in plot_ids):
             pyplot.scatter(x=range(1, len(data_frame) + 1),
