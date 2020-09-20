@@ -5,8 +5,10 @@ Weather data functionality.
 Try to write all methods such that they take a dataframe as input
 and return a dataframe.
 """
+
 import pandas as pd
-from opengrid.library.exceptions import *
+
+from opengrid.library.exceptions import UnexpectedSamplingRate
 
 
 def calculate_temperature_equivalent(temperatures):
@@ -23,7 +25,8 @@ def calculate_temperature_equivalent(temperatures):
     Pandas Series
     """
 
-    ret = 0.6*temperatures + 0.3*temperatures.shift(1) + 0.1*temperatures.shift(2)
+    ret = 0.6*temperatures + 0.3 * \
+        temperatures.shift(1) + 0.1*temperatures.shift(2)
     ret.name = 'temp_equivalent'
     return ret
 
@@ -59,14 +62,14 @@ def _calculate_degree_days(temperature_equivalent, base_temperature, cooling=Fal
     return ret
 
 
-def compute_degree_days(ts, heating_base_temperatures, cooling_base_temperatures):
+def compute_degree_days(time_series, heating_base_temperatures, cooling_base_temperatures):
     """
     Compute degree-days for heating and/or cooling
 
     Parameters
     ----------
-    ts : pandas.Series
-        Contains ambient (outside) temperature. Series name (ts.name) does not matter.
+    time_series : pandas.Series
+        Contains ambient (outside) temperature. Series name (time_series.name) does not matter.
     heating_base_temperatures: list
         For each base temperature the heating degree-days will be computed
     cooling_base_temperatures: list
@@ -74,26 +77,31 @@ def compute_degree_days(ts, heating_base_temperatures, cooling_base_temperatures
 
     Returns
     -------
-    df: pandas.DataFrame with DAILY resolution and the following columns:
+    data_frame: pandas.DataFrame with DAILY resolution and the following columns:
         temp_equivalent and columns HDD_baseT and CDD_baseT for each of the given base temperatures.
     """
 
     # verify the sampling rate: should be at least daily.
-    mean_sampling_rate = (ts.index[-1] - ts.index[0]).total_seconds()/(len(ts)-1)
+    mean_sampling_rate = (
+        time_series.index[-1] - time_series.index[0]).total_seconds()/(len(time_series)-1)
     if int(mean_sampling_rate/86400.) > 1:
-        raise UnexpectedSamplingRate("The sampling rate should be daily or shorter but found sampling rate: {}s".format(mean_sampling_rate))
+        raise UnexpectedSamplingRate(
+            "Should be daily at most. Found %s" % mean_sampling_rate)
 
-    ts_day = ts.resample(rule='D').mean()
-    df = pd.DataFrame(calculate_temperature_equivalent(ts_day))
+    time_series_day = time_series.resample(rule='D').mean()
+    data_frame = pd.DataFrame(
+        calculate_temperature_equivalent(time_series_day))
 
     for base in heating_base_temperatures:
-        df = pd.concat([df, _calculate_degree_days(temperature_equivalent=df['temp_equivalent'], base_temperature=base)], axis=1)
+        data_frame = pd.concat([data_frame, _calculate_degree_days(
+            temperature_equivalent=data_frame['temp_equivalent'], base_temperature=base)], axis=1)
 
     for base in cooling_base_temperatures:
-        df = pd.concat([df, _calculate_degree_days(temperature_equivalent=df['temp_equivalent'], base_temperature=base, cooling=True)],
-                       axis=1)
+        data_frame = pd.concat(objs=[data_frame,
+                                     _calculate_degree_days(
+                                         temperature_equivalent=data_frame['temp_equivalent'],
+                                         base_temperature=base, cooling=True)
+                                     ],
+                               axis=1)
 
-    return df
-
-
-
+    return data_frame
