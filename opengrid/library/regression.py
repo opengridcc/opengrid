@@ -6,6 +6,8 @@ Try to write all methods such that they take a dataframe as input
 and return a dataframe or list of dataframes.
 """
 
+# pylint : disable=E0611
+
 from patsy import ModelDesc, Term, LookupFactor
 from statsmodels.sandbox.regression.predstd import wls_prediction_std
 import statsmodels.formula.api as fm
