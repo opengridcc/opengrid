@@ -8,8 +8,8 @@ and return a dataframe or list of dataframes.
 
 import datetime as dt
 import pandas as pd
+from numbers import Number
 import numpy as np
-import numbers
 from opengrid.library.exceptions import EmptyDataFrame
 
 
@@ -22,13 +22,12 @@ class Analysis(object):
     It also has output methods: plot, to json...
     """
 
-    def __init__(self, df, *args, **kwargs):
-        self.df = df
-        self.do_analysis(*args, **kwargs)
+    def __init__(self, data_frame, *args, **kwargs):
+        self.data_frame = data_frame
 
     def do_analysis(self, *args, **kwargs):
         # To be overwritten by inheriting class
-        self.result = self.df.copy()
+        self.result = self.data_frame.copy()
 
     def plot(self):
         self.result.plot()
@@ -46,11 +45,11 @@ class DailyAgg(Analysis):
       This can be used eg. to get the minimum consumption during the night.
     """
 
-    def __init__(self, df, agg, starttime=dt.time.min, endtime=dt.time.max):
+    def __init__(self, data_frame, agg, starttime=dt.time.min, endtime=dt.time.max):
         """
         Parameters
         ----------
-        df : pandas.DataFrame
+        data_frame : pandas.DataFrame
             With pandas.DatetimeIndex and one or more columns
         agg : str
             'min', 'max', or another aggregation function
@@ -58,18 +57,19 @@ class DailyAgg(Analysis):
             For each day, only consider the time between starttime and endtime
             If None, use begin of day/end of day respectively
         """
-        super(DailyAgg, self).__init__(df, agg, starttime=starttime, endtime=endtime)
+        super(DailyAgg, self).__init__(data_frame, agg, starttime=starttime, endtime=endtime)
 
     def do_analysis(self, agg, starttime=dt.time.min, endtime=dt.time.max):
-        if not self.df.empty:
-            df = self.df[(self.df.index.time >= starttime) & (self.df.index.time < endtime)]
-            df = df.resample('D', how=agg)
-            self.result = df
+        """ TODO docstring """
+        if not self.data_frame.empty:
+            data_frame = self.data_frame[(self.data_frame.index.time >= starttime) & (self.data_frame.index.time < endtime)]
+            data_frame = data_frame.resample('D', how=agg)
+            self.result = data_frame
         else:
             self.result = pd.DataFrame()
 
 
-def standby(df, resolution='24h', time_window=None):
+def standby(data_frame, resolution='24h', time_window=None):
     """
     Compute standby power
 
@@ -96,7 +96,7 @@ def standby(df, resolution='24h', time_window=None):
 
     df = pd.DataFrame(df)  # if df was a pd.Series, convert to DataFrame
     def parse_time(t):
-        if isinstance(t, numbers.Number):
+        if isinstance(t, Number):
             return pd.Timestamp.utcfromtimestamp(t).time()
         else:
             return pd.Timestamp(t).time()
