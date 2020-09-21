@@ -3,7 +3,7 @@ mock
 wheel
 pytest
 pytest-cov
-flake8
+pylint
 
 matplotlib
 pandas
