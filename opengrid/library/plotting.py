@@ -132,7 +132,7 @@ def carpet(time_series, options=None):
     return axes_image
 
 
-def boxplot(data_frame, plot_mean=False, plot_ids=None, title="",  labels: tuple = ("x", "y")):
+def boxplot(data_frame, plot_mean=False, plot_ids=None, title="", labels: tuple = ("x", "y")):
     """
     Plot boxplots
 

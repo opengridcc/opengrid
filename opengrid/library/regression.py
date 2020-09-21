@@ -292,34 +292,19 @@ class MultiVarLinReg(Analysis):
 
         """
 
-        def remove_from_model_desc(varname, model_desc):
-            """
-            Return a model_desc without varname
-            """
-
-            rhs_termlist = []
-            for term in model_desc.rhs_termlist:
-                if not term.factors:
-                    # intercept, add anyway
-                    rhs_termlist.append(term)
-                elif not varname == term.factors[0]._varname:
-                    # this is not the term with x
-                    rhs_termlist.append(term)
-
-            return ModelDesc(model_desc.lhs_termlist, rhs_termlist)
-
-        corrected_model_desc = ModelDesc(
+        model_desc = ModelDesc(
             fit.model.formula.lhs_termlist[:], fit.model.formula.rhs_termlist[:])
-        pars_to_prune = fit.pvalues.where(
+        to_prune = fit.pvalues.where(
             fit.pvalues > p_max).dropna().index.tolist()
-        pars_to_prune.remove('Intercept')
-        while pars_to_prune:
-            corrected_model_desc = remove_from_model_desc(
-                pars_to_prune[0], corrected_model_desc)
-            fit = fm.ols(corrected_model_desc, data=self.data_frame).fit()
-            pars_to_prune = fit.pvalues.where(
+        to_prune.remove('Intercept')
+
+        while to_prune:
+            model_desc.rhs_termlist.remove(Term([LookupFactor(to_prune[0])]))
+            fit = fm.ols(model_desc, data=self.data_frame).fit()
+            to_prune = fit.pvalues.where(
                 fit.pvalues > p_max).dropna().index.tolist()
-            pars_to_prune.remove('Intercept')
+            to_prune.remove('Intercept')
+
         return fit
 
     @ staticmethod
@@ -414,10 +399,7 @@ class MultiVarLinReg(Analysis):
         self.data_frame = self._predict(fit=self.fit,
                                         data_frame=self.data_frame)
 
-    def plot(self,
-             model=True,
-             bar_chart=True,
-             **kwargs):
+    def plot(self, **kwargs):
         """
         Plot measurements and predictions.
 
@@ -453,13 +435,13 @@ class MultiVarLinReg(Analysis):
         if 'predicted' not in data_frame.columns:
             data_frame = self._predict(fit=fit, data_frame=data_frame)
         # split the data_frame in the auto-validation and prognosis part
-        data_frame_auto = data_frame.loc[self.data_frame.index[0]:self.data_frame.index[-1]]
-        if data_frame_auto.empty:
-            data_frame_prog = data_frame
+        df_auto = data_frame.loc[self.data_frame.index[0]                                 :self.data_frame.index[-1]]
+        if df_auto.empty:
+            df_prog = data_frame
         else:
-            data_frame_prog = data_frame.loc[data_frame_auto.index[-1]:].iloc[1:]
+            df_prog = data_frame.loc[df_auto.index[-1]:].iloc[1:]
 
-        if model:
+        if kwargs.pop('model', True):
             # The first variable in the formula is the most significant.
             # Use it as abcis for the plot
             try:
@@ -480,17 +462,17 @@ class MultiVarLinReg(Analysis):
             pyplot.plot(data_framemodel.index,
                         data_framemodel['interval_u'], ':', color='royalblue')
             # plot dots for the measurements
-            if len(data_frame_auto) > 0:
-                pyplot.plot(data_frame_auto[exog1],
-                            data_frame_auto[self.dependent_var],
+            if len(df_auto) > 0:
+                pyplot.plot(df_auto[exog1],
+                            df_auto[self.dependent_var],
                             'o',
                             mfc='orangered',
                             mec='orangered',
                             ms=8,
                             label='Data used for model fitting')
-            if len(data_frame_prog) > 0:
-                pyplot.plot(data_frame_prog[exog1],
-                            data_frame_prog[self.dependent_var],
+            if len(df_prog) > 0:
+                pyplot.plot(df_prog[exog1],
+                            df_prog[self.dependent_var],
                             'o',
                             mfc='seagreen',
                             mec='seagreen',
@@ -501,31 +483,29 @@ class MultiVarLinReg(Analysis):
             pyplot.xlabel(exog1)
             figures.append(pyplot.gcf())
 
-        if bar_chart:
+        if kwargs.pop('bar_chart', True):
             # the x locations for the groups
             ind = np.arange(len(data_frame.index))
             width = 0.35  # the width of the bars
 
             _fig, axes = pyplot.subplots()
             title = 'Measured'  # will be appended based on the available data
-            if len(data_frame_auto) > 0:
-                model = axes.bar(ind[:len(data_frame_auto)],
-                                 data_frame_auto['predicted'],
-                                 width * 2,
-                                 color='#FDD787',
-                                 ecolor='#FDD787',
-                                 yerr=data_frame_auto['interval_u'] -
-                                 data_frame_auto['predicted'],
-                                 label=self.dependent_var + ' modelled')
+            if len(df_auto) > 0:
+                axes.bar(x=ind[:len(df_auto)],
+                         height=df_auto['predicted'],
+                         width=width * 2,
+                         color='#FDD787',
+                         ecolor='#FDD787',
+                         yerr=df_auto['interval_u'] - df_auto['predicted'],
+                         label=self.dependent_var + ' modelled')
                 title = title + ', modelled'
-            if len(data_frame_prog) > 0:
-                axes.bar(ind[len(data_frame_auto):],
-                         data_frame_prog['predicted'],
-                         width * 2,
+            if len(df_prog) > 0:
+                axes.bar(x=ind[len(df_auto):],
+                         height=df_prog['predicted'],
+                         width=width * 2,
                          color='#6CD5A1',
                          ecolor='#6CD5A1',
-                         yerr=data_frame_prog['interval_u'] -
-                         data_frame_prog['predicted'],
+                         yerr=df_prog['interval_u'] - df_prog['predicted'],
                          label=self.dependent_var + ' expected')
                 title = title + ' and predicted'
 

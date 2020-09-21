@@ -102,7 +102,7 @@ class RegressionTest(unittest.TestCase):
         mvlr.add_prediction()
         self.assertTrue(mvlr.data_frame['predicted'].min() >= 0)
 
-    @mock.patch('opengrid.library.regression.plot', plt_mocked)
+    @mock.patch('opengrid.library.regression.pyplot', plt_mocked)
     def test_plot(self):
         data_frame = datasets.get('gas_2016_hour')
         data_frame_month = data_frame.resample('MS').sum()

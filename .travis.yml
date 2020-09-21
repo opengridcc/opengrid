@@ -7,20 +7,20 @@ before_install: python3 -m pip install -r requirements.txt
 install: python3 -m pip install .
 
 stages:
-  - linting
+  - pylint
   - pip-install
   - pytest
 
 jobs:
   include:
-    - stage: linting
-      name: "Flake8 check"
+    - stage: pylint
+      name: "Pylint check"
       install: skip
-      script: flake8 opengrid/library/*.py --max-line-length 100 --exit-zero
+      script: python3 -m pylint opengrid/library/*.py --rcfile pylint.ini --exit-zero
       python: "3.8"
 
     - stage: pip-install
-      name: "Local installation using pip"
+      name: "Local pip install"
       script: skip
       python: "3.8"
 
