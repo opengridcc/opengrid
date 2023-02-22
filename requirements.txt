@@ -1,11 +1,5 @@
-coveralls
-mock
-wheel
-pytest
-pytest-cov
-pylint
-
 matplotlib
+numpy
 pandas
 patsy
 statsmodels

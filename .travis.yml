@@ -3,7 +3,7 @@ language: python
 os: linux
 dist: bionic
 
-before_install: python3 -m pip install -r requirements.txt
+before_install: python3 -m pip install -r test/requirements.txt
 install: python3 -m pip install .
 
 stages:

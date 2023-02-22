@@ -15,13 +15,12 @@ log_cli_date_format = "%Y-%m-%d %H:%M:%S"
 log_cli_format = "%(asctime)s %(levelname)s %(message)s"
 log_cli_level = "INFO"
 testpaths = "test"
-addopts = "--cov=opengrid --cov-config=pytest.ini"
+addopts = "--cov=opengrid --cov-config=pyproject.toml"
 
 [tool.coverage.run]
-branch = true
-source = "opengrid"
-include = "*/opengrid/library/*"
-omit = "*__init__*"
+branch  = true
+source  = ["opengrid/library"]
+omit    = ["*__init__*"]
 
 [tool.pylint.main]
 # Analyse import fallback blocks. This can be used to support both Python 2 and 3

@@ -72,6 +72,7 @@ Install required packages for development (Inside of virtual environment if you 
 
 ``` bash
 python3 -m pip install -r requirements.txt
+python3 -m pip install -r test/requirements.txt
 ```
 
 ## Testing your setup

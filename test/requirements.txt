@@ -1,0 +1,5 @@
+coveralls
+mock
+pylint
+pytest
+pytest-cov
