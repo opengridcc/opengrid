@@ -7,10 +7,11 @@ and return a dataframe or list of dataframes.
 """
 
 # pylint: disable=E0611
-from patsy import ModelDesc, Term, LookupFactor
+from patsy.desc import ModelDesc, Term, LookupFactor
 from statsmodels.sandbox.regression.predstd import wls_prediction_std
 import statsmodels.formula.api as fm
 import numpy as np
+from pandas import DataFrame
 
 from matplotlib import pyplot
 
@@ -80,9 +81,9 @@ class MultiVarLinReg(Analysis):
     """
 
     def __init__(self,
-                 data_frame,
-                 dependent_var,
-                 options=None):
+                 data_frame: DataFrame,
+                 dependent_var: str,
+                 options: dict = None):
         """
 
         Parameters
@@ -110,24 +111,23 @@ class MultiVarLinReg(Analysis):
 
         super().__init__(data_frame=data_frame)
 
-        assert_error = "%s not a column in the dataframe" % dependent_var
+        assert_error = f"{dependent_var} not a column in the dataframe"
         assert dependent_var in self.data_frame.columns, assert_error
 
         self.dependent_var = dependent_var
 
         options = options if options else {}
 
-        self.p_max = options.pop('p_max', 0.05)
-        self.confint = options.pop('confint', 0.95)
-        self.list_of_x = options.pop(
-            'list_of_x', self.data_frame.columns.tolist())
-        self.cross_validation = options.pop('cross_validation', False)
-        self.negative_predictions = options.pop('negative_predictions', False)
+        self.options = {
+            "p_max": options.pop('p_max', 0.05),
+            "confint": options.pop('confint', 0.95),
+            "list_of_x": options.pop('list_of_x', self.data_frame.columns.tolist()),
+            "cross_validation": options.pop('cross_validation', False),
+            "negative_predictions": options.pop('negative_predictions', False)
+        }
 
-        try:
-            self.list_of_x.remove(self.dependent_var)
-        except ValueError:
-            pass
+        if dependent_var in self.options['list_of_x']:
+            self.options['list_of_x'].remove(dependent_var)
 
         self._fit = None
         self._list_of_fits = []
@@ -153,9 +153,10 @@ class MultiVarLinReg(Analysis):
         """
         Find the best model (fit) and create self.list_of_fits and self.fit
         """
-        if self.cross_validation:
-            return self._do_analysis_cross_validation()
-        return self._do_analysis_no_cross_validation()
+        if self.options['cross_validation']:
+            self._do_analysis_cross_validation()
+        else:
+            self._do_analysis_no_cross_validation()
 
     def _do_analysis_no_cross_validation(self):
         """
@@ -166,7 +167,7 @@ class MultiVarLinReg(Analysis):
         response_term = [Term([LookupFactor(self.dependent_var)])]
         model_terms = [Term([])]  # empty term is the intercept
         all_model_terms_dict = {x: Term([LookupFactor(x)])
-                                for x in self.list_of_x}
+                                for x in self.options['list_of_x']}
         # ...then add another term for each candidate
         # model_terms += [Term([LookupFactor(c)]) for c in candidates]
         model_desc = ModelDesc(response_term, model_terms)
@@ -191,7 +192,7 @@ class MultiVarLinReg(Analysis):
                     best_val = value
             # Sometimes, the obtained fit may be better, but contains unsignificant parameters.
             # Correct the fit by removing the unsignificant parameters and estimate again
-            best_fit = self._prune(best_fit, p_max=self.p_max)
+            best_fit = self._prune(best_fit, p_max=self.options['p_max'])
 
             # if best_fit does not contain more variables than ref fit, exit
             if len(best_fit.model.formula.rhs_termlist) == len(ref_fit.model.formula.rhs_termlist):
@@ -225,7 +226,7 @@ class MultiVarLinReg(Analysis):
 
         # try to improve the model until no improvements can be found
         all_model_terms_dict = {x: Term([LookupFactor(x)])
-                                for x in self.list_of_x}
+                                for x in self.options['list_of_x']}
         while all_model_terms_dict:
             # import pdb;pdb.set_trace()
             # try each x in all_exog and overwrite if we find a better one
@@ -360,13 +361,13 @@ class MultiVarLinReg(Analysis):
         if 'Intercept' in fit.model.exog_names:
             data_frame_res['Intercept'] = 1.0
         data_frame_res['predicted'] = fit.predict(data_frame_res)
-        if not self.negative_predictions:
+        if not self.options['negative_predictions']:
             data_frame_res.loc[data_frame_res['predicted']
                                < 0, 'predicted'] = 0
 
         _, interval_l, interval_u = wls_prediction_std(fit,
                                                        data_frame_res[fit.model.exog_names],
-                                                       alpha=1 - self.confint)
+                                                       alpha=1 - self.options['confint'])
         data_frame_res['interval_l'] = interval_l
         data_frame_res['interval_u'] = interval_u
 
@@ -435,7 +436,7 @@ class MultiVarLinReg(Analysis):
         if 'predicted' not in data_frame.columns:
             data_frame = self._predict(fit=fit, data_frame=data_frame)
         # split the data_frame in the auto-validation and prognosis part
-        df_auto = data_frame.loc[self.data_frame.index[0]                                 :self.data_frame.index[-1]]
+        df_auto = data_frame.loc[self.data_frame.index[0]:self.data_frame.index[-1]]
         if df_auto.empty:
             df_prog = data_frame
         else:
@@ -447,7 +448,7 @@ class MultiVarLinReg(Analysis):
             try:
                 exog1 = fit.model.exog_names[1]
             except IndexError:
-                exog1 = self.list_of_x[0]
+                exog1 = self.options['list_of_x'][0]
 
             # plot model as an adjusted trendline
             # get sorted model values
@@ -478,8 +479,7 @@ class MultiVarLinReg(Analysis):
                             mec='seagreen',
                             ms=8,
                             label='Data not used for model fitting')
-            pyplot.title(
-                'rsquared={:.2f} - BIC={:.1f}'.format(fit.rsquared, fit.bic))
+            pyplot.title(f"rsquared={fit.rsquared:.2f} - BIC={fit.bic:.1f}")
             pyplot.xlabel(exog1)
             figures.append(pyplot.gcf())
 
@@ -512,10 +512,10 @@ class MultiVarLinReg(Analysis):
             axes.bar(ind, data_frame[self.dependent_var], width,
                      label=self.dependent_var + ' measured', color='#D5756C')
             # add some text for labels, title and axes ticks
-            axes.set_title('{} {}'.format(title, self.dependent_var))
+            axes.set_title(f"{title} {self.dependent_var}")
             axes.set_xticks(ind)
-            axes.set_xticklabels([x.strftime('%d-%m-%Y')
-                                  for x in data_frame.index], rotation='vertical')
+            axes.set_xticklabels(labels=[x.strftime("%d-%m-%Y") for x in data_frame.index],
+                                 rotation='vertical')
             axes.yaxis.grid(True)
             axes.xaxis.grid(False)
 

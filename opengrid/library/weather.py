@@ -49,15 +49,16 @@ def _calculate_degree_days(temperature_equivalent, base_temperature, cooling=Fal
     """
 
     if cooling:
+        prefix = 'CDD'
         ret = temperature_equivalent - base_temperature
     else:
+        prefix = 'HDD'
         ret = base_temperature - temperature_equivalent
 
     # degree days cannot be negative
     ret[ret < 0] = 0
 
-    prefix = 'CDD' if cooling else 'HDD'
-    ret.name = '{}_{}'.format(prefix, base_temperature)
+    ret.name = f"{prefix}_{base_temperature}"
 
     return ret
 
@@ -85,8 +86,7 @@ def compute_degree_days(time_series, heating_base_temperatures, cooling_base_tem
     mean_sampling_rate = (
         time_series.index[-1] - time_series.index[0]).total_seconds()/(len(time_series)-1)
     if int(mean_sampling_rate/86400.) > 1:
-        raise UnexpectedSamplingRate(
-            "Should be daily at most. Found %s" % mean_sampling_rate)
+        raise UnexpectedSamplingRate(f"Should be daily at most. Found {mean_sampling_rate}")
 
     time_series_day = time_series.resample(rule='D').mean()
     data_frame = pd.DataFrame(

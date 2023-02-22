@@ -127,7 +127,7 @@ def carpet(time_series, options=None):
     colorbar.set_label(colorbar_label)
 
     # plot title
-    pyplot.title("Carpet plot - %s" % time_series_name)
+    pyplot.title(f"Carpet plot - {time_series_name}")
 
     return axes_image
 

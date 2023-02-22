@@ -6,8 +6,6 @@ Try to write all methods such that they take a dataframe as input
 and return a dataframe or list of dataframes.
 """
 
-from numbers import Number
-
 import datetime as dt
 import pandas as pd
 import numpy as np
@@ -115,9 +113,11 @@ def standby(data_frame,
     data_frame = pd.DataFrame(data_frame)
 
     def parse_time(time):
-        if isinstance(time, Number):
-            return pd.Timestamp.utcfromtimestamp(time).time()
-        return pd.Timestamp(time).time()
+        if isinstance(time, (int, float)):
+            parsed_time = pd.Timestamp.utcfromtimestamp(time).time()
+        else:
+            parsed_time = pd.Timestamp(time).time()
+        return parsed_time
 
     # first filter based on the time-window
     if time_window:
