@@ -93,12 +93,10 @@ def carpet(time_series, options=None):
               data_frame.index[0] - 0.5]    # - 0.5 to align date ticks
 
     axes_image = pyplot.imshow(X=data_frame,
-                               vmin=vmin,
-                               vmax=vmax,
                                extent=extent,
                                cmap=options.pop('cmap', cm.coolwarm),
                                aspect=options.pop('aspect', 'auto'),
-                               norm=options.pop('norm', LogNorm()),
+                               norm=options.pop('norm', LogNorm(vmin=vmin, vmax=vmax)),
                                interpolation=options.pop('interpolation', 'nearest'))
 
     # figure formatting
