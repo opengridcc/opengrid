@@ -7,7 +7,8 @@ and return a dataframe or list of dataframes.
 """
 
 # pylint: disable=E0611
-from patsy.desc import ModelDesc, Term, LookupFactor
+from patsy import LookupFactor
+from patsy.desc import ModelDesc, Term
 from statsmodels.sandbox.regression.predstd import wls_prediction_std
 import statsmodels.formula.api as fm
 import numpy as np
