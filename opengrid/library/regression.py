@@ -547,9 +547,6 @@ class MultiVarLinReg(Analysis):
         dictionary.pop('_list_of_fits')
         dictionary.pop('_fit')
 
-        print("Pickling...  Removing the 'formula' from each fit.model.\n\
-             You have to unpickle your object or run __setstate__(self.__dict__) to restore them.")
-
         return dictionary
 
     def __setstate__(self, state):

@@ -61,7 +61,6 @@ def carpet(time_series, options=None):
 
     # data preparation
     if time_series.dropna().empty:
-        print('skipped - no data')
         return None
 
     options = options if options else {}
