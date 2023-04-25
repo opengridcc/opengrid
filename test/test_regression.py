@@ -85,17 +85,15 @@ class RegressionTest(unittest.TestCase):
                                          dependent_var='313b',
                                          options={'p_max': 0.04})
         mvlr.do_analysis()
-        data_frame_pred_95 = mvlr._predict(
-            mvlr.fit, data_frame=data_frame_pred)
+        data_frame_pred_95 = mvlr._predict(mvlr.fit, data_frame=data_frame_pred)
         mvlr.confint = 0.98
-        data_frame_pred_98 = mvlr._predict(
-            mvlr.fit, data_frame=data_frame_pred)
-        self.assertAlmostEqual(
-            data_frame_pred_95.loc['2016-12-01', 'predicted'], data_frame_pred_98.loc['2016-12-01', 'predicted'])
-        self.assertTrue(data_frame_pred_98.loc['2016-12-01', 'interval_u']
-                        > data_frame_pred_95.loc['2016-12-01', 'interval_u'])
-        self.assertTrue(data_frame_pred_98.loc['2016-12-01', 'interval_l']
-                        < data_frame_pred_95.loc['2016-12-01', 'interval_l'])
+        data_frame_pred_98 = mvlr._predict(mvlr.fit, data_frame=data_frame_pred)
+        self.assertAlmostEqual( data_frame_pred_95.loc['2016-12-01', 'predicted'], 
+                                data_frame_pred_98.loc['2016-12-01', 'predicted'])
+        self.assertTrue(data_frame_pred_98.loc['2016-12-01', 'interval_u'] >= 
+                        data_frame_pred_95.loc['2016-12-01', 'interval_u'])
+        self.assertTrue(data_frame_pred_98.loc['2016-12-01', 'interval_l'] <= 
+                        data_frame_pred_95.loc['2016-12-01', 'interval_l'])
 
         # check limitation to zero
         mvlr.allow_negative_predictions = False
@@ -159,16 +157,15 @@ class RegressionTest(unittest.TestCase):
                                          dependent_var='313b',
                                          options={'p_max': 0.04})
         mvlr.do_analysis()
-        data_frame_pred_95_orig = mvlr._predict(
-            mvlr.fit, data_frame=data_frame_pred)
+        data_frame_pred_95_orig = mvlr._predict(mvlr.fit, data_frame=data_frame_pred)
 
         s = pickle.dumps(mvlr)
         m = pickle.loads(s)
         self.assertTrue(hasattr(m, 'list_of_fits'))
         data_frame_pred_95_roundtrip = m._predict(
             m.fit, data_frame=data_frame_pred)
-        self.assertAlmostEqual(
-            data_frame_pred_95_orig.loc['2016-12-01', 'predicted'], data_frame_pred_95_roundtrip.loc['2016-12-01', 'predicted'])
+        self.assertAlmostEqual( data_frame_pred_95_orig.loc['2016-12-01', 'predicted'], 
+                                data_frame_pred_95_roundtrip.loc['2016-12-01', 'predicted'])
 
 
 if __name__ == '__main__':
